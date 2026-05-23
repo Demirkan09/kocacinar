@@ -144,7 +144,7 @@ export default function UrunlerPage() {
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: '', price: '', image_url: '/about.jpg', category: 'PEYNİR' });
+      setFormData({ name: '', price: '', image_url: '/default.png', category: 'PEYNİR' });
     }
     setSelectedFile(null); // Pencere her açıldığında seçilen eski dosyayı sıfırla
     setIsModalOpen(true);

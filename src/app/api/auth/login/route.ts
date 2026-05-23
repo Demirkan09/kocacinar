@@ -46,7 +46,8 @@ export async function POST(request: Request) {
     // Cookie ayarlarını yapıyoruz (Güvenlik tavan)
     response.cookies.set('kocacinar_session', token, {
       httpOnly: true, // Tarayıcı JS kodları bu cookie'ye erişemez (XSS Koruması)
-      secure: process.env.NODE_ENV === 'production', // Sadece HTTPS üzerinde çalışsın (Canlıda aktif olur)
+      //secure: process.env.NODE_ENV === 'production', // Sadece HTTPS üzerinde çalışsın (Canlıda aktif olur)
+      secure: false,
       sameSite: 'lax', // CSRF koruması sağlar
       maxAge: 60 * 60 * 24 * 7, // 7 gün saniye cinsinden
       path: '/', // Tüm sitede geçerli olsun

@@ -5,9 +5,6 @@ import Navbar from '../components/Navbar';
 export default function Iletisim() {
   return (
     <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F]">
-      <AnnouncementBar />
-{/* Navbar */}
-<Navbar />
 
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -45,8 +42,6 @@ export default function Iletisim() {
           <p className="mt-8 text-sm">© 2026 Koca Çınar Şarküteri. Tüm hakları saklıdır.</p>
         </div>
       </footer>
-
-      <WhatsAppButton />
     </main>
   );
 }

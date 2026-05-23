@@ -1,8 +1,5 @@
 import Image from 'next/image';
-import AnnouncementBar from '../components/AnnouncementBar';
 import { HiOutlineMagnifyingGlass, HiOutlineUser, HiOutlineShoppingBag } from "react-icons/hi2";
-import Navbar from '../components/Navbar';
-import WhatsAppButton from '../components/WhatsappButton';
 export default function Urunler() {
   const products = [
     { id: 1, name: "Köy Peyniri", price: 185, category: "Peynir", unit: "kg" },
@@ -19,10 +16,6 @@ export default function Urunler() {
 
   return (
     <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F]">
-      <AnnouncementBar />
-{/* Navbar */}
-<Navbar />
-
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">

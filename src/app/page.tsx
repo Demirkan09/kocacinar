@@ -1,16 +1,8 @@
 import Image from 'next/image';
-import AnnouncementBar from '../components/AnnouncementBar';
 import { HiOutlineMagnifyingGlass, HiOutlineUser, HiOutlineShoppingBag } from "react-icons/hi2";
-import Navbar from '../components/Navbar';
-import WhatsAppButton from '../components/WhatsappButton';
 export default function Anasayfa() {
   return (
     <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F]">
-{/* === KAYAN DUYURU ÇUBUĞU === */}
-<AnnouncementBar />
-{/* Navbar */}
-<Navbar />
-<WhatsAppButton />
 
       {/* Hero Section */}
       <section 

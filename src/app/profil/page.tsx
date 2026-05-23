@@ -1,7 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
+import AnnouncementBar from '@/app/components/AnnouncementBar';
+import Navbar from '@/app/components//Navbar';
+import WhatsAppButton from '@/app/components/WhatsappButton';
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('kisisel');
   const [user, setUser] = useState<any>(null);

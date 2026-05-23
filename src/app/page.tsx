@@ -12,7 +12,8 @@ export default function Anasayfa() {
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
           <h2 className="text-6xl md:text-7xl font-bold text-[white] mb-6 tracking-wide">
-            KOCA ÇINAR<br />ŞARKÜTERİ
+            KOCA ÇINAR<br />
+            ŞARKÜTERİ
           </h2>
           <p className="text-xl text-[white] mb-8 max-w-2xl mx-auto">
             En taze ve kaliteli şarküteri ürünleriyle hizmetinizdeyiz.
@@ -26,7 +27,7 @@ export default function Anasayfa() {
         </div>
       </section>
 
-      <footer className="bg-[#F2EBE3] text-[#D4A373] py-6">
+      <footer className="bg-[#3C2F2F] text-[#D4A373] py-12">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <p className="text-2xl font-bold">KOCA ÇINAR ŞARKÜTERİ</p>
           <p className="mt-2">Kalite ve Doğallık</p>

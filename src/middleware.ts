@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
 
   if (token) {
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'varsayilan_gizli_anahtar_32_karakter_olmali');
+      const secret = new TextEncoder().encode('kocacinar1234567890abcdef');
       await jwtVerify(token, secret);
       isAuthenticated = true;
     } catch (err) {

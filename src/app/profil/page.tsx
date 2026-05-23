@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import AnnouncementBar from '@/app/components/AnnouncementBar';
 import Navbar from '@/app/components//Navbar';
 import WhatsAppButton from '@/app/components/WhatsappButton';
-export default function ProfilePage() {
+export default async function ProfilePage() {
+    console.log("Profil sayfası render ediliyor..."); // Terminalde bunu görüyor musun?
   const [activeTab, setActiveTab] = useState('kisisel');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);

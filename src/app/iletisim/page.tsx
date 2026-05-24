@@ -1,47 +1,51 @@
-import WhatsAppButton from '../components/WhatsappButton';
-import AnnouncementBar from '../components/AnnouncementBar';
-import { HiOutlineMagnifyingGlass, HiOutlineUser, HiOutlineShoppingBag } from "react-icons/hi2";
-import Navbar from '../components/Navbar';
+// src/app/iletisim/page.tsx
 export default function Iletisim() {
   return (
-    <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F]">
+    <main className="min-h-screen bg-[#F5F0E6] py-20 px-4">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="text-5xl md:text-6xl font-extrabold text-[#5e0d0f] mb-6">Bize Ulaşın</h2>
+        <p className="text-gray-600 mb-12">Lezzet yolculuğumuz hakkında sorularınız için her zaman buradayız.</p>
 
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-5xl font-bold mb-6">İletişime Geçin</h2>
-          <p className="text-xl text-[#6B5B4A] mb-12">Sorularınız ve siparişleriniz için bize ulaşabilirsiniz.</p>
-
-          <div className="bg-white rounded-3xl shadow-xl p-12 max-w-2xl mx-auto">
-            <div className="space-y-8 text-left">
-              <div>
-                <p className="font-medium text-lg">📍 Adres</p>
-                <p className="mt-2">Koca Çınar Şarküteri<br />[Adresinizi buraya yazınız]</p>
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* İletişim Kartı */}
+          <div className="bg-white/80 backdrop-blur-md p-10 rounded-[40px] shadow-sm border border-white hover:shadow-xl transition-all text-left">
+            <div className="space-y-10">
+              <div className="flex gap-4">
+                <span className="text-3xl">📍</span>
+                <div>
+                  <p className="font-bold text-[#5e0d0f] uppercase text-xs tracking-widest mb-1">Adresimiz</p>
+                  <p className="text-gray-700">Koca Çınar Şarküteri, <br />Çeştepe Mahallesi, Barış Caddesi NO: 6/1</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-lg">☎️ Telefon</p>
-                <a href="tel:+905513404848" className="text-2xl font-semibold hover:text-[#A67C5D] transition">
-                  +90 551 340 48 48
-                </a>
-              </div>
-              <div>
-                <p className="font-medium text-lg">✉️ E-posta</p>
-                <p>kocacinarciftlik@gmail.com</p>
-              </div>
-              <div>
-                <p className="font-medium text-lg">Çalışma Saatleri</p>
-                <p>Hafta İçi: 08:00 - 20:00<br />Hafta Sonu: 08:30 - 18:00</p>
+              <div className="flex gap-4">
+                <span className="text-3xl">📞</span>
+                <div>
+                  <p className="font-bold text-[#5e0d0f] uppercase text-xs tracking-widest mb-1">Telefon</p>
+                  <a href="tel:+905513404848" className="text-xl font-bold hover:text-[#D4A373] transition">+90 551 340 48 48</a>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <footer className="bg-[#3C2F2F] text-[#D4A373] py-12">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-2xl font-bold">KOCA ÇINAR ŞARKÜTERİ</p>
-          <p className="mt-8 text-sm">© 2026 Koca Çınar Şarküteri. Tüm hakları saklıdır.</p>
+          {/* Çalışma Saatleri */}
+          <div className="bg-[#5e0d0f] p-10 rounded-[40px] text-white text-left shadow-2xl flex flex-col justify-between">
+            <h4 className="text-2xl font-bold italic mb-6">Açık Olduğumuz <br /> Saatler</h4>
+            <div className="space-y-4">
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>Hafta İçi</span>
+                <span className="font-bold">08:00 - 20:00</span>
+              </div>
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>Hafta Sonu</span>
+                <span className="font-bold">08:30 - 18:00</span>
+              </div>
+            </div>
+            <a href="https://wa.me/905513404848" className="mt-8 w-full bg-[#D4A373] text-[#5e0d0f] font-bold py-4 rounded-2xl text-center hover:bg-white transition-all shadow-lg">
+               WhatsApp Sipariş Hattı
+            </a>
+          </div>
         </div>
-      </footer>
+      </div>
     </main>
   );
 }

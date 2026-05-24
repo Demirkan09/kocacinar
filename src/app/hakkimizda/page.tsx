@@ -1,41 +1,50 @@
+// src/app/hakkimizda/page.tsx
 import Image from 'next/image';
-import { HiOutlineMagnifyingGlass, HiOutlineUser, HiOutlineShoppingBag } from "react-icons/hi2";
+
 export default function Hakkimizda() {
   return (
-    <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F]">
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-5xl font-bold text-center mb-4 text-[#3C2F2F]">Hakkımızda</h2>
-          <p className="text-center text-[#6B5B4A] mb-16">Kalite ve Doğallık</p>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-4xl font-bold mb-6 text-[#A67C5D]">Gelenekten Geleceğe</h3>
-              <p className="text-lg leading-relaxed">
-                Koca Çınar Şarküteri olarak kendi üremimimiz olan en kaliteli peynir, sucuk, pastırma, 
-                zeytin, bal, reçel ve diğer organik ürünlerimizi siz değerli müşterilerimize sunuyoruz.
-              </p>
-              <p className="mt-6 text-lg leading-relaxed">
-                Her ürünümüz özenle ve doğal yöntemlerle üretilir ve taze olarak reyonlarımıza ulaşır. 
-                Müşterilerimizin memnuniyeti bizim için her zaman önceliklidir.
-              </p>
+    <main className="min-h-screen bg-[#F5F0E6] selection:bg-[#D4A373]">
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            
+            {/* Görsel Alanı - Premium Çerçeve */}
+            <div className="relative group">
+              <div className="absolute -inset-4 border-2 border-[#D4A373]/30 rounded-[40px] transform group-hover:rotate-2 transition-transform duration-700"></div>
+              <div className="relative h-[500px] md:h-[600px] rounded-[32px] overflow-hidden shadow-2xl">
+                <Image 
+                  src="/about.jpg" 
+                  alt="Koca Çınar Şarküteri Üretim" 
+                  fill 
+                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
+                />
+              </div>
             </div>
-            <div className="relative h-96 rounded-2xl overflow-hidden shadow-xl">
-              <Image 
-                src="/about.jpg" 
-                alt="Koca Çınar Şarküteri" 
-                fill 
-                className="object-cover"
-              />
+
+            {/* Metin Alanı */}
+            <div className="flex flex-col gap-8">
+              <span className="text-[#D4A373] font-bold tracking-[0.3em] uppercase text-sm">Bizim Hikayemiz</span>
+              <h2 className="text-5xl md:text-7xl font-bold text-[#5e0d0f] leading-tight font-serif italic">
+                Doğallığın <br /> En Saf Hali
+              </h2>
+              <p className="text-lg text-gray-700 leading-relaxed font-light">
+                <strong className="text-[#5e0d0f]">Koca Çınar Şarküteri</strong> olarak, her bir lokmada memleketimizin bereketli topraklarının kokusunu hissettirmeyi amaçlıyoruz. Kendi üretimimiz olan peynirlerden, yöresinden seçilen zeytinlere kadar her şey "gerçek gıda" prensibimizle sofranıza ulaşır.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-8 py-8 border-t border-[#D4A373]/20">
+                <div>
+                  <h4 className="text-3xl font-bold text-[#5e0d0f]">Katkısız</h4>
+                  <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Üretim Garantisi</p>
+                </div>
+                <div>
+                  <h4 className="text-3xl font-bold text-[#5e0d0f]">%100</h4>
+                  <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Doğal Üretim</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
-      <footer className="bg-[#3C2F2F] text-[#D4A373] py-12 mt-20">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-2xl font-bold">KOCA ÇINAR ŞARKÜTERİ</p>
-          <p className="mt-8 text-sm">© 2026 Koca Çınar Şarküteri. Tüm hakları saklıdır.</p>
-        </div>
-      </footer>
     </main>
   );
 }

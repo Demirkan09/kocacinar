@@ -33,7 +33,7 @@ export default function LoginPage() {
         
         // Başarılı girişten 1.5 saniye sonra kullanıcıyı ana sayfaya veya profile şutluyoruz
         setTimeout(() => {
-          router.push('/profil'); 
+          router.push('/urunler'); 
           router.refresh(); // Sayfayı yenileyerek navbarın durumunu güncelliyoruz
         }, 1500);
       }

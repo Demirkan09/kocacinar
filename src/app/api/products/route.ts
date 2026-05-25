@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+
 // Admin Doğrulama Fonksiyonu
 async function isAdmin() {
   try {
@@ -28,14 +29,14 @@ async function isAdmin() {
 // 1. ÜRÜNLERİ LİSTELEME (GET)
 export async function GET() {
   try {
-    const res = await query('SELECT * FROM products ORDER BY id DESC');
+    const res = await query('SELECT * FROM products ORDER BY sort_order ASC, id DESC');
     return NextResponse.json(res.rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// 2. YENİ ÜRÜN EKLEME (POST) - Dosya Yükleme Destekli
+// 2. YENİ ÜRÜN EKLEME (POST)
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
@@ -45,37 +46,34 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const price = formData.get('price') as string;
+    const oldPrice = formData.get('old_price') as string; 
     const category = formData.get('category') as string;
     const imageUrlInput = formData.get('image_url') as string;
+    const unit = formData.get('unit') as string; // ✅ Birim bilgisini yakalıyoruz
     const file = formData.get('file') as File | null;
-
+    
     if (!name || !price) {
       return NextResponse.json({ error: 'İsim ve fiyat alanları zorunludur.' }, { status: 400 });
     }
 
     let finalImageUrl = imageUrlInput || '/about.jpg';
+    const parsedOldPrice = oldPrice ? parseFloat(oldPrice) : null;
 
-    // Eğer bilgisayardan dosya seçildiyse VDS'e kaydet
     if (file && file.size > 0 && file.name !== 'undefined') {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-
-      // public/uploads klasör yolunu oluştur
       const uploadDir = join(process.cwd(), 'public', 'uploads');
       await mkdir(uploadDir, { recursive: true });
-
-      // Benzersiz dosya ismi üret
       const uniqueFileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
       const filePath = join(uploadDir, uniqueFileName);
-      
-      // Dosyayı diske yaz
       await writeFile(filePath, buffer);
       finalImageUrl = `/uploads/${uniqueFileName}`;
     }
 
+    // ✅ unit SÜTUNU SQL SORGUSUNA VE PARAMETRELERİNE EKLENDİ
     const res = await query(
-      'INSERT INTO products (name, price, image_url, category) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, parseFloat(price), finalImageUrl, category || 'PEYNİR']
+      'INSERT INTO products (name, price, old_price, image_url, category, unit, sort_order) VALUES ($1, $2, $3, $4, $5, $6, 0) RETURNING *',
+      [name, parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg']
     );
 
     return NextResponse.json({ success: true, product: res.rows[0] });
@@ -84,19 +82,37 @@ export async function POST(request: Request) {
   }
 }
 
-// 3. ÜRÜN GÜNCELLEME (PUT) - ESKİ FOTOYU DA SİLER
+// 3. ÜRÜN GÜNCELLEME (PUT)
 export async function PUT(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
   }
+
+  const contentType = request.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    try {
+      const body = await request.json();
+      if (body.action === 'reorder') {
+        for (const item of body.items) {
+          await query('UPDATE products SET sort_order = $1 WHERE id = $2', [item.sort_order, item.id]);
+        }
+        return NextResponse.json({ success: true, message: 'Sıralama güncellendi.' });
+      }
+    } catch (error: any) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
 
   try {
     const formData = await request.formData();
     const id = formData.get('id') as string;
     const name = formData.get('name') as string;
     const price = formData.get('price') as string;
+    const oldPrice = formData.get('old_price') as string;
     const category = formData.get('category') as string;
     const imageUrlInput = formData.get('image_url') as string;
+    const unit = formData.get('unit') as string; // ✅ Birim bilgisini yakalıyoruz
     const file = formData.get('file') as File | null;
 
     if (!id || !name || !price) {
@@ -104,39 +120,29 @@ export async function PUT(request: Request) {
     }
 
     let finalImageUrl = imageUrlInput;
+    const parsedOldPrice = oldPrice ? parseFloat(oldPrice) : null;
 
-    // Eğer yeni bir dosya yükleniyorsa
     if (file && file.size > 0 && file.name !== 'undefined') {
-      
-      // 1. Önce eski görseli bulup silelim (eğer varsa ve uploads klasöründeyse)
       const oldProductRes = await query('SELECT image_url FROM products WHERE id = $1', [id]);
       const oldImageUrl = oldProductRes.rows[0]?.image_url;
-      
       if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
         const oldFilePath = join(process.cwd(), 'public', oldImageUrl);
-        if (existsSync(oldFilePath)) {
-          await unlink(oldFilePath);
-          console.log(`🗑️ Eski fotoğraf sunucudan temizlendi: ${oldFilePath}`);
-        }
+        if (existsSync(oldFilePath)) await unlink(oldFilePath);
       }
-
-      // 2. Yeni dosyayı kaydedelim
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const uploadDir = join(process.cwd(), 'public', 'uploads');
       await mkdir(uploadDir, { recursive: true });
-      
       const uniqueFileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
       const filePath = join(uploadDir, uniqueFileName);
-      
       await writeFile(filePath, buffer);
       finalImageUrl = `/uploads/${uniqueFileName}`;
     }
 
-    // 3. Veritabanını güncelleyelim
+    // ✅ unit SÜTUNU UPDATE SQL SORGUSUNA VE PARAMETRELERİNE EKLENDİ
     const res = await query(
-      'UPDATE products SET name = $1, price = $2, image_url = $3, category = $4 WHERE id = $5 RETURNING *',
-      [name, parseFloat(price), finalImageUrl, category || 'PEYNİR', id]
+      'UPDATE products SET name = $1, price = $2, old_price = $3, image_url = $4, category = $5, unit = $6 WHERE id = $7 RETURNING *',
+      [name, parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', id]
     );
 
     return NextResponse.json({ success: true, product: res.rows[0] });
@@ -145,7 +151,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// 4. ÜRÜN SİLME (DELETE) - HEM VERİTABANINDAN HEM DİSKTEN SİLER
+// 4. ÜRÜN SİLME (DELETE)
 export async function DELETE(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
@@ -153,36 +159,19 @@ export async function DELETE(request: Request) {
 
   try {
     const { id } = await request.json();
-    if (!id) {
-      return NextResponse.json({ error: 'Ürün ID bilgisi eksik.' }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: 'Ürün ID bilgisi eksik.' }, { status: 400 });
 
-    // Önce silinecek ürünün görsel yolunu veritabanından öğrenelim kanka
     const productRes = await query('SELECT image_url FROM products WHERE id = $1', [id]);
-    
     if (productRes.rows.length > 0) {
       const imageUrl = productRes.rows[0].image_url;
-
-      // Eğer görsel bizim sunucuya yüklediğimiz (/uploads/ ile başlayan) bir dosya ise silelim
       if (imageUrl && imageUrl.startsWith('/uploads/')) {
-        // public klasörünün içindeki dosya yolunu tam buluyoruz
         const filePath = join(process.cwd(), 'public', imageUrl);
-        
-        try {
-          // Dosya gerçekten diskte var mı kontrol et, varsa yok et kanka
-          if (existsSync(filePath)) {
-            await unlink(filePath);
-          }
-        } catch (fileErr) {
-          console.error("Fotoğraf dosyası silinirken hata çıktı (Sistem engellemiş olabilir):", fileErr);
-          // Fotoğraf silinemese bile ürünün db'den silinmesini engellememek için işleme devam ediyoruz
-        }
+        try { if (existsSync(filePath)) await unlink(filePath); } catch {}
       }
     }
 
-    // Şimdi ürünü veritabanından tamamen silebiliriz
     await query('DELETE FROM products WHERE id = $1', [id]);
-    return NextResponse.json({ success: true, message: 'Ürün ve bağlı görsel başarıyla silindi.' });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

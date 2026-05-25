@@ -30,13 +30,26 @@ export default function UrunlerPage() {
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   // Kategoriler (LocalStorage ile tarayıcıda kalıcı yaptık)
-  const [categories, setCategories] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('kocacinar_categories');
-      if (saved) return JSON.parse(saved);
+const [categories, setCategories] = useState<string[]>([
+  'PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'
+]);
+
+// Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolünü burada yapıyoruz:
+useEffect(() => {
+  const saved = localStorage.getItem('kocacinar_categories');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setCategories(parsed);
+        // Eğer seçili olan varsayılan kategori listede yoksa ilk elemanı seçelim
+        setFormData(prev => ({ ...prev, category: parsed[0] }));
+      }
+    } catch (e) {
+      console.error("Kategori yükleme hatası:", e);
     }
-    return ['PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'];
-  });
+  }
+}, []);
 
   const [formData, setFormData] = useState({ 
     name: '', price: '', old_price: '', image_url: '', category: categories[0] || 'PEYNİR', unit: 'kg' 

@@ -12,12 +12,14 @@ export default function Hakkimizda() {
             <div className="relative group">
               <div className="absolute -inset-4 border-2 border-[#D4A373]/30 rounded-[40px] transform group-hover:rotate-2 transition-transform duration-700"></div>
               <div className="relative h-[500px] md:h-[600px] rounded-[32px] overflow-hidden shadow-2xl">
-                <Image 
-                  src="/about.jpg" 
-                  alt="Koca Çınar Şarküteri Üretim" 
-                  fill 
-                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
-                />
+<Image
+  src="/about.jpg"
+  alt="Hakkımızda"
+  fill
+  priority={true} // 👈 LCP uyarısını çözer (Resmi öncelikli yükler)
+  sizes="(max-width: 768px) 100vw, 50vw" // 👈 Slayt/Boyut uyarısını çözer
+  className="object-cover"
+/>
               </div>
             </div>
 

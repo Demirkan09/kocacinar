@@ -1,6 +1,8 @@
 // src/app/components/AnnouncementBar.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
+
 const announcements = [
   " Türkiye'nin En Seçkin Şarküteri Lezzetleri",
   " 2000 TL ve Üzeri Alışverişlerde Ücretsiz Kargo",
@@ -10,8 +12,21 @@ const announcements = [
 ];
 
 export default function AnnouncementBar() {
+  const [mounted, setMounted] = useState(false);
+
+  // Sayfa tarayıcıda yüklendiği an mounted true olur
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Sunucu tarafında render edilmesini engelleyerek hydration hatasını kökten çözüyoruz kanka
+  if (!mounted) return null;
+
   return (
-    <div className="bg-[#000000] text-[#D4A373] py-2 text-[11px] md:text-xs overflow-hidden border-b border-[#D4A373]/20 uppercase tracking-[0.2em] font-bold">
+    <div 
+      suppressHydrationWarning={true} // Doğru kullanım şekli etiket özelliğidir kanka
+      className="bg-[#000000] text-[#D4A373] py-2 text-[11px] md:text-xs overflow-hidden border-b border-[#D4A373]/20 uppercase tracking-[0.2em] font-bold"
+    >
       <div className="flex items-center h-6">
         <div className="animate-marquee whitespace-nowrap flex items-center gap-12 md:gap-24">
           {announcements.map((text, index) => (

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/app/components/cart';
 import { useSearchParams } from 'next/navigation';
-
+import { Suspense } from 'react';
 interface Product {
   id: number;
   name: string;
@@ -14,7 +14,7 @@ interface Product {
   sort_order?: number; // Sürükle bırak sıra numarası
 }
 
-export default function UrunlerPage() {
+function UrunlerPage() {
   const { addToCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -225,6 +225,7 @@ export default function UrunlerPage() {
 
     return matchesCategory && matchesSearch;
   });
+  
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] py-16 px-4 md:px-8 font-sans relative">
@@ -450,5 +451,16 @@ export default function UrunlerPage() {
         </div>
       )}
     </div>
+  );
+}
+export default function UrunlerPageWithSuspense() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F0E6] flex items-center justify-center font-sans text-[#5e0d0f] font-bold">
+        Yükleniyor...
+      </div>
+    }>
+      <UrunlerPage />
+    </Suspense>
   );
 }

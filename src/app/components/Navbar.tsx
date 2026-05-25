@@ -195,7 +195,7 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange} // 👈 SİHİR BURADA: Her harfte çalışır
-                placeholder="İstediğiniz ürünü arayın... (Örn: Peynir)"
+                placeholder="İstediğiniz ürünü arayın..."
                 className="w-full bg-white/10 border border-white/20 text-white placeholder-white/60 px-5 py-3 rounded-xl outline-none focus:bg-white/20 focus:border-[#D4A373] transition-all shadow-inner"
                 autoFocus
               />

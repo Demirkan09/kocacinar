@@ -9,7 +9,7 @@ import {
   HiOutlineBars3
 } from 'react-icons/hi2';
 import { FaWhatsapp } from 'react-icons/fa';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 // Projendeki global sepet verisini dinlemek için doğru context yolunu bağlıyoruz
 import { useCart } from '@/app/components/cart';
 
@@ -21,7 +21,22 @@ export default function Navbar() {
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const val = e.target.value;
+    setSearchQuery(val); // Kutudaki yazıyı anında günceller
 
+    if (val.trim()) {
+      // Harf girildikçe URL'yi anında günceller (Sayfa yenilenmez, arkada tıkır tıkır çalışır)
+      router.replace(`/urunler?q=${encodeURIComponent(val)}`);
+    } else {
+      // Müşteri kutuyu tamamen silerse ve zaten ürünler sayfasındaysa filtreyi temizler
+      if (pathname === '/urunler') {
+        router.replace('/urunler');
+      }
+    }
+  };
   // Kullanıcı Oturum Kontrolü
   useEffect(() => {
     const token = document.cookie
@@ -172,18 +187,22 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ================= ARAMA KUTUSU (Açılır Kapanır) ================= */}
+{/* ================= CANLI ARAMA KUTUSU ================= */}
         {isSearchOpen && (
           <div className="pb-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="relative max-w-3xl mx-auto">
+            <form onSubmit={(e) => e.preventDefault()} className="relative max-w-3xl mx-auto">
               <input
                 type="text"
-                placeholder="Canınız ne çekti? Arayın..."
+                value={searchQuery}
+                onChange={handleSearchChange} // 👈 SİHİR BURADA: Her harfte çalışır
+                placeholder="İstediğiniz ürünü arayın... (Örn: Peynir)"
                 className="w-full bg-white/10 border border-white/20 text-white placeholder-white/60 px-5 py-3 rounded-xl outline-none focus:bg-white/20 focus:border-[#D4A373] transition-all shadow-inner"
                 autoFocus
               />
-              <HiOutlineMagnifyingGlass className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60" size={20} />
-            </div>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none">
+                <HiOutlineMagnifyingGlass size={20} />
+              </div>
+            </form>
           </div>
         )}
 

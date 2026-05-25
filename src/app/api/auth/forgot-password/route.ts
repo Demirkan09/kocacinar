@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     await sendKocaCinarMail(
       email.trim(),
-      "Şifre Sıfırlama Talebi - Koca Çınar Şarküteri 🔑",
+      "Şifre Sıfırlama Talebi - Koca Çınar Şarküteri",
       `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee;">
           <h2 style="color: #5e0d0f; text-align: center;">Şifre Sıfırlama</h2>
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetLink}" style="background-color: #5e0d0f; color: white; padding: 12px 30px; text-decoration: none; border-radius: 10px; font-weight: bold;">Yeni Şifre Oluştur</a>
           </div>
-          <p style="color: #999; font-size: 11px;">Eğer bu talebi siz yapmadıysanız, bu e-postayı güvenle silebilirsiniz. Şifreniz güvendedir.</p>
+          <p style="color: #999; font-size: 11px;">Eğer bu talebi siz yapmadıysanız, bu e-postayı dikkate almayınız.</p>
         </div>
       `
     );

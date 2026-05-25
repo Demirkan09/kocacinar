@@ -20,7 +20,7 @@ export default function SepetPage() {
     message += `*Ara Toplam:* ₺${subtotal}\n`;
     message += `*Kargo:* ${shippingFee === 0 ? 'Ücretsiz' : `₺${shippingFee}`}\n`;
     message += `*Toplam Tutar:* *₺${totalAmount}*\n\n`;
-    message += `Adres ve teslimat bilgileri için dönüşünüzü bekliyorum.`;
+    message += `Merhaba, bu ürünleri sipariş etmek istiyorum.`;
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/905513404848?text=${encodedMessage}`, '_blank');

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/app/components/cart';
+import { useSearchParams } from 'next/navigation';
 
 interface Product {
   id: number;
@@ -20,9 +21,9 @@ export default function UrunlerPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
   const [selectedCategory, setSelectedCategory] = useState<string>('HEPSİ');
-  
+  const searchParams = useSearchParams();
+  const searchQuery = searchParams?.get('q') || '';
   // Sürükle-Bırak için State
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -30,26 +31,26 @@ export default function UrunlerPage() {
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   // Kategoriler (LocalStorage ile tarayıcıda kalıcı yaptık)
-const [categories, setCategories] = useState<string[]>([
-  'PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'
-]);
+  const [categories, setCategories] = useState<string[]>([
+    'PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'
+  ]);
 
-// Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolünü burada yapıyoruz:
-useEffect(() => {
-  const saved = localStorage.getItem('kocacinar_categories');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setCategories(parsed);
-        // Eğer seçili olan varsayılan kategori listede yoksa ilk elemanı seçelim
-        setFormData(prev => ({ ...prev, category: parsed[0] }));
+  // Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolünü burada yapıyoruz:
+  useEffect(() => {
+    const saved = localStorage.getItem('kocacinar_categories');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCategories(parsed);
+          // Eğer seçili olan varsayılan kategori listede yoksa ilk elemanı seçelim
+          setFormData(prev => ({ ...prev, category: parsed[0] }));
+        }
+      } catch (e) {
+        console.error("Kategori yükleme hatası:", e);
       }
-    } catch (e) {
-      console.error("Kategori yükleme hatası:", e);
     }
-  }
-}, []);
+  }, []);
 
   const [formData, setFormData] = useState({ 
     name: '', price: '', old_price: '', image_url: '', category: categories[0] || 'PEYNİR', unit: 'kg' 
@@ -212,9 +213,18 @@ useEffect(() => {
     setIsModalOpen(true);
   };
 
-  const filteredProducts = selectedCategory === 'HEPSİ'
-    ? products
-    : products.filter(product => product.category?.toUpperCase() === selectedCategory.toUpperCase());
+  // ✅ DEĞİŞEN KISIM: Hem Kategori Seçimini hem de Navbar'dan gelen harfleri (Live Search) aynı anda süzen filtre
+  const filteredProducts = products.filter((product) => {
+    // 1. Kategori Şartı
+    const matchesCategory = selectedCategory === 'HEPSİ' || product.category?.toUpperCase() === selectedCategory.toUpperCase();
+    
+    // 2. Canlı Arama Şartı
+    const matchesSearch = searchQuery
+      ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
+
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] py-16 px-4 md:px-8 font-sans relative">
@@ -273,7 +283,7 @@ useEffect(() => {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
             <div className="text-5xl mb-4">🛒</div>
-            <h3 className="text-lg font-bold text-[#3C2F2F]">Bu kategoride henüz ürün bulunmuyor.</h3>
+            <h3 className="text-lg font-bold text-[#3C2F2F]">Aradığınız kriterlere uygun ürün bulunmuyor.</h3>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
@@ -355,7 +365,7 @@ useEffect(() => {
         )}
       </div>
 
-      {/* ================= ADMİN MODAL (KATEGORİ SIRALAMASI EKLENDİ) ================= */}
+      {/* ================= ADMİN MODAL ================= */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-[#3C2F2F]/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">

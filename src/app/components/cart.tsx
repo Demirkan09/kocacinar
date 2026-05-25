@@ -42,8 +42,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('kocacinar_cart', JSON.stringify(cart));
   }, [cart]);
 
-  // Toplam ürün sayısını hesapla
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
+  // ✅ DEĞİŞEN KISIM: Toplam adet yerine sepetteki benzersiz ürün çeşidi sayısını alıyoruz
+  const cartCount = cart.length;
 
   // Sepete Ürün Ekleme ve Sağ Altta Baloncuk Çıkarma Fonksiyonu
   const addToCart = (product: any) => {

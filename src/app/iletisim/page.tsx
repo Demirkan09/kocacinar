@@ -21,7 +21,7 @@ export default function Iletisim() {
                 <span className="text-3xl">📞</span>
                 <div>
                   <p className="font-bold text-[#5e0d0f] uppercase text-xs tracking-widest mb-1">Telefon</p>
-                  <a href="tel:+905513404848" className="text-xl font-bold hover:text-[#D4A373] transition">+90 551 340 48 48</a>
+                  <a href="tel:+905513404848" className="text-xl text-[#000000] font-bold hover:text-[#D4A373] transition">+90 551 340 48 48</a>
                 </div>
               </div>
             </div>

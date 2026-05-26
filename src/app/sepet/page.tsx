@@ -1,16 +1,31 @@
 'use client';
 import { useCart } from '@/app/components/cart';
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 
 export default function SepetPage() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
-
+  
   // Toplam sepet tutarını hesaplama
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shippingFee = subtotal >= 2000 || subtotal === 0 ? 0 : 75; // 2000 TL üzeri kargo bedava kuralı kanka
+  const shippingFee = subtotal >= 2000 || subtotal === 0 ? 0 : 75; // 2000 TL üzeri kargo bedava kuralı 
   const totalAmount = subtotal + shippingFee;
 
-  // WhatsApp'a sipariş listesini profesyonelce mesaj olarak gönderme
+  // Ödeme yapacak müşterinin bilgileri için state yapısı
+  const [buyerInfo, setBuyerInfo] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+    address: '',
+    city: 'Aydın', // Varsayılan Şehir
+    email: ''
+  });
+
+  // İşlem durumlarını kontrol eden state tanımlamaları
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  // Sipariş listesini WhatsApp hattına iletme fonksiyonu
   const handleWhatsAppCheckout = () => {
     let message = `*Koca Çınar Şarküteri - Yeni Sipariş*\n\n`;
     cart.forEach((item, index) => {
@@ -25,6 +40,110 @@ export default function SepetPage() {
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/905513404848?text=${encodedMessage}`, '_blank');
   };
+  
+  // Online ödeme sayfasına yönlendirme fonksiyonu
+  const handleOnlineCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Zorunlu alanların kontrolü
+    if (!buyerInfo.first_name || !buyerInfo.last_name || !buyerInfo.phone || !buyerInfo.address || !buyerInfo.email) {
+      alert('Lütfen online ödeme işleminin tamamlanabilmesi için teslimat ve iletişim bilgilerinizi eksiksiz doldurunuz.');
+      return;
+    }
+
+    if (cart.length === 0) {
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const res = await fetch('/api/checkout', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    cartItems: cart,
+    totalPrice: totalAmount,
+    shippingFee: shippingFee,
+    buyerInfo: buyerInfo
+  })
+});
+
+      const data = await res.json();
+
+if (data.status === 'success' && data.paymentPageUrl) {
+      window.location.href = data.paymentPageUrl;
+    } else {
+      alert(`Ödeme başlatılamadı: ${data.errorMessage || 'Bilinmeyen hata'}`);
+      setIsProcessing(false);
+    }
+    } catch (err) {
+      console.error('Ödeme hatası:', err);
+      alert('Ödeme sunucusuyla iletişim kurulurken bir hata oluştu.');
+      setIsProcessing(false);
+    }
+  };
+
+  // Sayfa yüklendiğinde kullanıcı profil bilgilerini otomatik çeken fonksiyon
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch('/api/auth/me'); // Profil endpointinize göre burayı değiştirebilirsiniz
+        if (res.ok) {
+          const data = await res.json();
+          
+          const profile = data.user || data.profile || data;
+          
+          let formattedAddress = '';
+          let userCity = profile.city || 'Aydın';
+
+          // JSON formatındaki dizi [ { id, title, city, district, detail } ] yapısını çözümleme
+          if (profile.address) {
+            try {
+              const parsedAddresses = typeof profile.address === 'string' ? JSON.parse(profile.address) : profile.address;
+              
+              if (Array.isArray(parsedAddresses) && parsedAddresses.length > 0) {
+                // Sepet ekranında ilk adresi otomatik seçili olarak getiriyoruz
+                const primaryAddress = parsedAddresses[0]; 
+                
+                const addrParts = [];
+                if (primaryAddress.district && primaryAddress.city) addrParts.push(`${primaryAddress.district} / ${primaryAddress.city}`);
+                else if (primaryAddress.city) addrParts.push(primaryAddress.city);
+                
+                if (primaryAddress.detail) addrParts.push(primaryAddress.detail);
+                
+                formattedAddress = addrParts.join(', ');
+                
+                if (primaryAddress.city) {
+                  userCity = primaryAddress.city;
+                }
+              } else if (typeof parsedAddresses === 'string') {
+                 formattedAddress = parsedAddresses; // Dizi değilse düz metin olarak al
+              }
+            } catch (parseError) {
+              console.error('Adres JSON formatı çözümlenemedi, ham metin kullanılacak.', parseError);
+              formattedAddress = String(profile.address);
+            }
+          }
+
+          setBuyerInfo({
+            first_name: profile.first_name || profile.firstname || profile.firstName || '',
+            last_name: profile.last_name || profile.lastname || profile.lastName || '',
+            phone: profile.phone || '',
+            address: formattedAddress,
+            city: userCity,
+            email: profile.email || ''
+          });
+        }
+      } catch (err) {
+        console.error('Profil bilgileri yüklenirken hata oluştu:', err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] py-16 px-4 md:px-8 font-sans">
@@ -47,7 +166,7 @@ export default function SepetPage() {
             </a>
           </div>
         ) : (
-          // SEPET DOLUYSA (İSKELET DÜZEN)
+          // SEPET DOLUYSA
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
             {/* SOL ALAN: Ürün Listesi */}
@@ -114,50 +233,137 @@ export default function SepetPage() {
               </div>
             </div>
 
-            {/* SAĞ ALAN: Sipariş Özeti (Fatura Kartı) */}
-            <div className="bg-white rounded-[32px] p-6 md:p-8 shadow-lg border border-[#D4A373]/10 sticky top-24">
-              <h3 className="text-xl font-bold text-[#3C2F2F] mb-6 pb-3 border-b border-gray-100">Sipariş Özeti</h3>
-              
-              <div className="space-y-4 text-sm font-medium text-gray-600">
-                <div className="flex justify-between">
-                  <span>Sepet Toplamı</span>
-                  <span className="text-[#3C2F2F] font-bold">₺{subtotal}</span>
-                </div>
+            {/* SAĞ ALAN: Sipariş Özeti ve Fatura Kartı */}
+            <div className="bg-white rounded-[32px] p-6 md:p-8 shadow-lg border border-[#D4A373]/10 sticky top-24 space-y-6">
+              <div>
+                <h3 className="text-xl font-bold text-[#3C2F2F] mb-4 pb-3 border-b border-gray-100">Sipariş Özeti</h3>
                 
-                <div className="flex justify-between items-center">
-                  <span>Kargo Ücreti</span>
-                  {shippingFee === 0 ? (
-                    <span className="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-md text-xs">Ücretsiz</span>
-                  ) : (
-                    <span className="text-[#3C2F2F] font-bold">₺{shippingFee}</span>
+                <div className="space-y-4 text-sm font-medium text-gray-600">
+                  <div className="flex justify-between">
+                    <span>Sepet Toplamı</span>
+                    <span className="text-[#3C2F2F] font-bold">₺{subtotal}</span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span>Kargo Ücreti</span>
+                    {shippingFee === 0 ? (
+                      <span className="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-md text-xs">Ücretsiz</span>
+                    ) : (
+                      <span className="text-[#3C2F2F] font-bold">₺{shippingFee}</span>
+                    )}
+                  </div>
+
+                  {shippingFee > 0 && (
+                    <p className="text-[11px] text-amber-600 font-medium bg-amber-50 p-2.5 rounded-xl border border-amber-100">
+                      💡 Siparişinize <span className="font-bold">₺{2000 - subtotal}</span> tutarında daha ürün eklemeniz durumunda kargo ücreti alınmayacaktır.
+                    </p>
                   )}
-                </div>
 
-                {shippingFee > 0 && (
-                  <p className="text-[11px] text-amber-600 font-medium bg-amber-50 p-2.5 rounded-xl border border-amber-100">
-                    💡 <span className="font-bold">₺{2000 - subtotal}</span> liralık daha ürün ekleyin, kargo ücreti bedava olsun!
-                  </p>
-                )}
+                  <div className="h-px bg-gray-100 my-4"></div>
 
-                <div className="h-px bg-gray-100 my-4"></div>
-
-                <div className="flex justify-between items-end pt-2">
-                  <span className="text-base text-[#3C2F2F] font-bold">Genel Toplam</span>
-                  <span className="text-2xl font-extrabold text-[#5e0d0f]">₺{totalAmount}</span>
+                  <div className="flex justify-between items-end pt-2">
+                    <span className="text-base text-[#3C2F2F] font-bold">Genel Toplam</span>
+                    <span className="text-2xl font-extrabold text-[#5e0d0f]">₺{totalAmount}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Siparişi WhatsApp ile Tamamlama (CTA) */}
-              <button 
-                onClick={handleWhatsAppCheckout}
-                className="w-full mt-8 bg-[#25D366] text-white font-bold py-4 rounded-2xl hover:bg-[#20C25A] transition-all shadow-md hover:shadow-[#25D366]/30 text-center active:scale-95 flex items-center justify-center gap-2 text-sm md:text-base"
-              >
-                🟢 Siparişi WhatsApp ile Tamamla
-              </button>
-              
-              <p className="text-[10px] text-gray-400 text-center mt-3">
-                Sipariş listeniz otomatik hazırlanarak WhatsApp hattımıza iletilecektir.
-              </p>
+              {/* TESLİMAT BİLGİLERİ ALANI (Veritabanından Otomatik Olarak Çekilir) */}
+              <div className="space-y-3 bg-[#F5F0E6]/30 p-4 rounded-2xl border border-[#D4A373]/20">
+                <h4 className="text-xs font-bold text-[#5e0d0f]/80 uppercase tracking-wider mb-2">📋 Teslimat ve Fatura Bilgileri</h4>
+                
+                {isLoadingProfile ? (
+                  <div className="text-xs text-gray-500 animate-pulse py-2">Profil bilgileri yükleniyor...</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Adınız" 
+                        value={buyerInfo.first_name} 
+                        onChange={e => setBuyerInfo({...buyerInfo, first_name: e.target.value})}
+                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Soyadınız" 
+                        value={buyerInfo.last_name} 
+                        onChange={e => setBuyerInfo({...buyerInfo, last_name: e.target.value})}
+                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
+                      />
+                    </div>
+
+                    <input 
+                      type="email" 
+                      placeholder="E-posta Adresiniz" 
+                      value={buyerInfo.email} 
+                      onChange={e => setBuyerInfo({...buyerInfo, email: e.target.value})}
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
+                    />
+
+                    <input 
+                      type="tel" 
+                      placeholder="Telefon Numaranız" 
+                      value={buyerInfo.phone} 
+                      onChange={e => setBuyerInfo({...buyerInfo, phone: e.target.value})}
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
+                    />
+
+                    <textarea 
+                      placeholder="Teslimat Adresiniz" 
+                      value={buyerInfo.address} 
+                      onChange={e => setBuyerInfo({...buyerInfo, address: e.target.value})}
+                      rows={3}
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none resize-none text-[#3C2F2F]"
+                    />
+                  </>
+                )}
+              </div>
+
+              {/* AKSİYON BUTONLARI GRUBU */}
+              <div className="flex flex-col gap-3 pt-2">
+                {/* ONLINE ÖDEME BUTONU */}
+                <button
+                  onClick={handleOnlineCheckout}
+                  disabled={isProcessing || isLoadingProfile}
+                  className="w-full bg-[#5e0d0f] text-white py-3.5 px-4 rounded-2xl font-bold text-sm hover:bg-[#3d080a] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                >
+                  {isProcessing ? (
+                    <span>Güvenli Ödeme Sayfasına Yönlendiriliyorsunuz...</span>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Kredi / Banka Kartı ile Güvenli Öde
+                    </>
+                  )}
+                </button>
+
+                {/* SEÇENEK AYIRICI ALAN */}
+                <div className="flex items-center text-center my-1">
+                  <div className="flex-1 border-t border-gray-200"></div>
+                  <span className="text-gray-400 text-xs px-2 font-medium">veya</span>
+                  <div className="flex-1 border-t border-gray-200"></div>
+                </div>
+
+                {/* WHATSAPP SİPARİŞ BUTONU */}
+                <button 
+                  onClick={handleWhatsAppCheckout}
+                  disabled={isLoadingProfile}
+                  className="w-full bg-[#25D366] text-white font-bold py-3.5 px-4 rounded-2xl hover:bg-[#20C25A] transition-all shadow-md text-center active:scale-95 flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.372 5.378 0 12.001 0c3.21 0 6.225 1.251 8.5 3.522 2.273 2.27 3.524 5.286 3.522 8.501-.004 6.63-5.379 12-12.004 12-2.003 0-3.975-.497-5.732-1.44L0 24zm6.59-4.846c1.6.95 3.488 1.449 5.411 1.451 5.428 0 9.85-4.417 9.854-9.848.002-2.63-1.023-5.101-2.884-6.963C17.11 1.932 14.634.928 12.001.928c-5.43 0-9.852 4.418-9.855 9.849-.002 1.984.518 3.922 1.507 5.64l-.386 1.41.414-.108 1.545-.405z" />
+                  </svg>
+                  Siparişi WhatsApp ile Tamamla
+                </button>
+                
+                <p className="text-[10px] text-gray-400 text-center mt-1">
+                  Sipariş listeniz otomatik hazırlanarak WhatsApp hattımıza iletilecektir.
+                </p>
+              </div>
+
             </div>
 
           </div>

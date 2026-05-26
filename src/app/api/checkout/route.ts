@@ -1,34 +1,26 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
-
-function generateIyzicoAuthorization(apiKey: string, secretKey: string, randomString: string, hashString: string) {
-  const hash = crypto
-    .createHmac('sha1', secretKey)
-    .update(apiKey + randomString + hashString)
-    .digest('base64');
-  return `IYZWS ${apiKey}:${hash}`;
-}
+import Iyzipay from 'iyzipay';
 
 export async function POST(request: Request) {
   try {
     const { cartItems, totalPrice, shippingFee, buyerInfo } = await request.json();
 
-    const apiKey = process.env.IYZICO_API_KEY!;
-    const secretKey = process.env.IYZICO_SECRET_KEY!;
-    const baseUrl = process.env.IYZICO_BASE_URL!;
-
-    if (!apiKey || !secretKey) {
-      return NextResponse.json({ error: 'iyzico anahtarları eksik' }, { status: 500 });
-    }
+    // Iyzipay ayarlarını başlat (Kendi keylerini .env'den alacak)
+    const iyzipay = new Iyzipay({
+      apiKey: process.env.IYZICO_API_KEY!,
+      secretKey: process.env.IYZICO_SECRET_KEY!,
+      uri: process.env.IYZICO_BASE_URL || 'https://sandbox-api.iyzipay.com'
+    });
 
     const randomString = Date.now().toString();
     const conversationId = `CONV_${randomString}`;
 
+    // Sepet öğelerini Iyzipay'in istediği formata çevir
     const basketItems = cartItems.map((item: any) => ({
       id: item.id.toString(),
       name: item.name,
       category1: item.category || "Şarküteri",
-      itemType: "PHYSICAL",
+      itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
       price: (item.price * item.quantity).toFixed(2),
     }));
 
@@ -37,77 +29,78 @@ export async function POST(request: Request) {
         id: "SHIPPING",
         name: "Kargo Ücreti",
         category1: "Kargo",
-        itemType: "VIRTUAL",
+        itemType: Iyzipay.BASKET_ITEM_TYPE.VIRTUAL,
         price: shippingFee.toFixed(2),
       });
     }
 
     const fullName = `${buyerInfo.first_name || ''} ${buyerInfo.last_name || ''}`.trim();
 
-    const payload = {
-      locale: "tr",
-      conversationId,
+    // Payload'u hazırla
+    const requestData = {
+      locale: Iyzipay.LOCALE.TR,
+      conversationId: conversationId,
       price: totalPrice.toFixed(2),
       paidPrice: totalPrice.toFixed(2),
-      currency: "TRY",
+      currency: Iyzipay.CURRENCY.TRY,
       basketId: `BASKET_${randomString}`,
-      paymentGroup: "PRODUCT",
+      paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
       callbackUrl: "https://www.kocacinarciftlik.com/api/payment-callback",
+      enabledInstallments: [2, 3, 6, 9],
       buyer: {
-        id: "BYR_" + Date.now(),
-        name: buyerInfo.first_name || "",
-        surname: buyerInfo.last_name || "",
+        id: "BYR_" + randomString,
+        name: buyerInfo.first_name || "Müşteri",
+        surname: buyerInfo.last_name || "Soyadı",
         gsmNumber: buyerInfo.phone || "+905551234567",
-        email: buyerInfo.email || "",
+        email: buyerInfo.email || "email@email.com",
         identityNumber: "11111111111",
+        lastLoginDate: "2023-01-01 12:00:00",
+        registrationDate: "2023-01-01 12:00:00",
         registrationAddress: buyerInfo.address || "Adres bilgisi girilmemiş",
+        ip: "85.96.0.1",
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
-        zipCode: "09000",
-        ip: "85.96.0.1"
+        zipCode: "09000"
       },
       shippingAddress: {
-        contactName: fullName || "İsimsiz Müşteri",
+        contactName: fullName,
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
-        address: buyerInfo.address || "",
+        address: buyerInfo.address || "Adres bilgisi girilmemiş",
         zipCode: "09000"
       },
       billingAddress: {
-        contactName: fullName || "İsimsiz Müşteri",
+        contactName: fullName,
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
-        address: buyerInfo.address || "",
+        address: buyerInfo.address || "Adres bilgisi girilmemiş",
         zipCode: "09000"
       },
-      basketItems
+      basketItems: basketItems
     };
 
-    // Daha güvenli hash string
-    const buyerStr = `id=${payload.buyer.id},name=${payload.buyer.name},surname=${payload.buyer.surname},gsmNumber=${payload.buyer.gsmNumber},email=${payload.buyer.email},identityNumber=${payload.buyer.identityNumber},registrationAddress=${payload.buyer.registrationAddress},ip=${payload.buyer.ip},city=${payload.buyer.city},country=${payload.buyer.country},zipCode=${payload.buyer.zipCode}`;
+    // Iyzipay kütüphanesi callback ile çalışır, Next.js için bunu Promise'e sarıyoruz
+const initializeCheckout = () => {
+      return new Promise((resolve, reject) => {
+        iyzipay.checkoutFormInitialize.create(requestData, function (err: any, result: any) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+    };
 
-    const addressStr = `contactName=${payload.shippingAddress.contactName},city=${payload.shippingAddress.city},country=${payload.shippingAddress.country},address=${payload.shippingAddress.address},zipCode=${payload.shippingAddress.zipCode}`;
+    const result: any = await initializeCheckout();
+    console.log("iyzico cevabı:", result);
 
-    const basketStr = basketItems.map((i: any) => `[id=${i.id},price=${i.price},name=${i.name},category1=${i.category1},itemType=${i.itemType}]`).join(',');
-
-    const hashString = `locale=${payload.locale},conversationId=${payload.conversationId},price=${payload.price},paidPrice=${payload.paidPrice},currency=${payload.currency},basketId=${payload.basketId},paymentGroup=${payload.paymentGroup},callbackUrl=${payload.callbackUrl},buyer=[${buyerStr}],shippingAddress=[${addressStr}],billingAddress=[${addressStr}],basketItems=[${basketStr}]`;
-
-    console.log("HashString:", hashString); // Log için
-
-    const response = await fetch(`${baseUrl}/payment/iyzipos/checkoutform/initialize/auth/ecom`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-iyzi-rnd': randomString,
-        'Authorization': generateIyzicoAuthorization(apiKey, secretKey, randomString, hashString)
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json();
-    console.log("iyzico response:", data);
-
-    return NextResponse.json(data);
+    if (result.status === 'success') {
+      return NextResponse.json(result);
+    } else {
+      // Geçersiz imza vb. durumlarda Iyzico'nun hata mesajını front-end'e dönüyoruz
+      return NextResponse.json({ error: result.errorMessage }, { status: 400 });
+    }
 
   } catch (error: any) {
     console.error("Checkout Error:", error);

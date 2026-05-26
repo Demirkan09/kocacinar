@@ -15,7 +15,11 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.IYZICO_API_KEY!;
     const secretKey = process.env.IYZICO_SECRET_KEY!;
-    const baseUrl = process.env.IYZICO_BASE_URL || 'https://sandbox-api.iyzipay.com';
+    const baseUrl = process.env.IYZICO_BASE_URL!;
+
+    if (!apiKey || !secretKey) {
+      return NextResponse.json({ error: 'iyzico anahtarları eksik' }, { status: 500 });
+    }
 
     const randomString = Date.now().toString();
     const conversationId = `CONV_${randomString}`;
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const fullName = `${buyerInfo.first_name} ${buyerInfo.last_name}`.trim();
+    const fullName = `${buyerInfo.first_name || ''} ${buyerInfo.last_name || ''}`.trim();
 
     const payload = {
       locale: "tr",
@@ -56,21 +60,21 @@ export async function POST(request: Request) {
         gsmNumber: buyerInfo.phone || "+905551234567",
         email: buyerInfo.email || "",
         identityNumber: "11111111111",
-        registrationAddress: buyerInfo.address || "",
+        registrationAddress: buyerInfo.address || "Adres bilgisi girilmemiş",
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
         zipCode: "09000",
         ip: "85.96.0.1"
       },
       shippingAddress: {
-        contactName: fullName,
+        contactName: fullName || "İsimsiz Müşteri",
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
         address: buyerInfo.address || "",
         zipCode: "09000"
       },
       billingAddress: {
-        contactName: fullName,
+        contactName: fullName || "İsimsiz Müşteri",
         city: buyerInfo.city || "Aydın",
         country: "Turkey",
         address: buyerInfo.address || "",
@@ -79,16 +83,16 @@ export async function POST(request: Request) {
       basketItems
     };
 
-    // Hash String (iyzico için en kritik kısım)
+    // Daha güvenli hash string
     const buyerStr = `id=${payload.buyer.id},name=${payload.buyer.name},surname=${payload.buyer.surname},gsmNumber=${payload.buyer.gsmNumber},email=${payload.buyer.email},identityNumber=${payload.buyer.identityNumber},registrationAddress=${payload.buyer.registrationAddress},ip=${payload.buyer.ip},city=${payload.buyer.city},country=${payload.buyer.country},zipCode=${payload.buyer.zipCode}`;
 
     const addressStr = `contactName=${payload.shippingAddress.contactName},city=${payload.shippingAddress.city},country=${payload.shippingAddress.country},address=${payload.shippingAddress.address},zipCode=${payload.shippingAddress.zipCode}`;
 
-    const basketStr = basketItems.map((i: any) => 
-      `[id=${i.id},price=${i.price},name=${i.name},category1=${i.category1},itemType=${i.itemType}]`
-    ).join(',');
+    const basketStr = basketItems.map((i: any) => `[id=${i.id},price=${i.price},name=${i.name},category1=${i.category1},itemType=${i.itemType}]`).join(',');
 
     const hashString = `locale=${payload.locale},conversationId=${payload.conversationId},price=${payload.price},paidPrice=${payload.paidPrice},currency=${payload.currency},basketId=${payload.basketId},paymentGroup=${payload.paymentGroup},callbackUrl=${payload.callbackUrl},buyer=[${buyerStr}],shippingAddress=[${addressStr}],billingAddress=[${addressStr}],basketItems=[${basketStr}]`;
+
+    console.log("HashString:", hashString); // Log için
 
     const response = await fetch(`${baseUrl}/payment/iyzipos/checkoutform/initialize/auth/ecom`, {
       method: 'POST',
@@ -101,6 +105,8 @@ export async function POST(request: Request) {
     });
 
     const data = await response.json();
+    console.log("iyzico response:", data);
+
     return NextResponse.json(data);
 
   } catch (error: any) {

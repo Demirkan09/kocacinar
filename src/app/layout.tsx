@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-
+import Footer from "@/app/components/Footer"; // Yeni oluşturduğumuz footer
 import Providers from '@/app/providers'; // Yeni oluşturacağımız dosya
 
 const inter = Inter({ subsets: ['latin'] });

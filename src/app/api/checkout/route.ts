@@ -16,12 +16,14 @@ export async function POST(request: Request) {
     const conversationId = `CONV_${randomString}`;
 
     // Sepet öğelerini Iyzipay'in istediği formata çevir
-    const basketItems = cartItems.map((item: any) => ({
-      id: item.id.toString(),
+const basketItems = cartItems.map((item: any) => ({
+      id: item.id.toString(), // Supabase DB'deki gerçek ürün ID'n (Sepet Numarası olur)
       name: item.name,
       category1: item.category || "Şarküteri",
       itemType: Iyzipay.BASKET_ITEM_TYPE.PHYSICAL,
-      price: (item.price * item.quantity).toFixed(2),
+      price: (item.price * item.quantity).toFixed(2), // Toplam fiyat (iyzico bunu baz alır)
+      // === EKSİK OLAN KISIM BURASIYDI, BUNU EKLE ===
+      quantity: item.quantity 
     }));
 
     if (shippingFee > 0) {

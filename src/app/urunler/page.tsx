@@ -3,6 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/app/components/cart';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import { 
+  HiOutlineSparkles, 
+  HiOutlineTruck, 
+  HiOutlineShieldCheck, 
+  HiOutlineArrowRight, 
+  HiOutlineChatBubbleLeftRight 
+} from "react-icons/hi2";
 
 interface Product {
   id: number;
@@ -12,7 +19,7 @@ interface Product {
   image_url: string;
   category: string;
   unit: string; 
-  sort_order?: number; // Sürükle bırak sıra numarası
+  sort_order?: number;
 }
 
 function UrunlerPage() {
@@ -57,12 +64,11 @@ function UrunlerPage() {
   });
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // 🛠️ YENİ: Seçilen resmi Base64 formatına dönüştüren fonksiyon (Canlı sunucu uyumluluğu için)
+  // Seçilen resmi Base64 formatına dönüştüren fonksiyon
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Canlı sunucularda şişme yapmaması için 2MB dosya boyutu kontrolü
       if (file.size > 2 * 1024 * 1024) {
         alert("Yüklemek istediğiniz resim çok büyük! Lütfen 2MB'tan küçük bir görsel seçiniz.");
         return;
@@ -70,7 +76,6 @@ function UrunlerPage() {
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Oluşan Base64 string metnini doğrudan image_url alanına eşitliyoruz
         setFormData(prev => ({ ...prev, image_url: reader.result as string }));
       };
       reader.readAsDataURL(file);
@@ -192,7 +197,6 @@ function UrunlerPage() {
     } catch (err) {}
   };
 
-  // 🛠️ DEĞİŞEN KISIM: Canlı sunucu uyumluluğu için JSON tabanlı istek gönderme yapısı
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -200,7 +204,7 @@ function UrunlerPage() {
       name: formData.name,
       price: formData.price,
       old_price: formData.old_price,
-      image_url: formData.image_url, // Base64 veya normal link artık tamamen burada
+      image_url: formData.image_url, 
       category: formData.category || categories[0],
       unit: formData.unit || 'kg'
     };
@@ -213,7 +217,7 @@ function UrunlerPage() {
       const res = await fetch('/api/products', {
         method: editingProduct ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload) // Canlı sunucuda asla takılmayan temiz JSON yapısı
+        body: JSON.stringify(requestPayload)
       });
       
       const data = await res.json();
@@ -334,7 +338,8 @@ function UrunlerPage() {
                     </div>
                   )}
 
-                  <div className="p-3 bg-[#FBF9F4] flex items-center justify-center h-44 md:h-52 relative overflow-hidden rounded-t-[2rem]">
+                  {/* 🛠️ TAM GÜNCEL KUSURSUZ GÖRSEL ALANI (Sıfıra sıfır, boşluksuz ve oval) */}
+                  <div className="h-52 md:h-60 w-full relative overflow-hidden rounded-t-[2rem]">
                     {discountPercent > 0 && (
                       <div className="absolute top-3 left-3 bg-[#5e0d0f] text-[#F5F0E6] text-[10px] font-extrabold px-3 py-1 rounded-full shadow-md z-10 tracking-wider">
                         %{discountPercent} İNDİRİM
@@ -346,44 +351,44 @@ function UrunlerPage() {
                       </div>
                     )}
                     
-                    <div className="w-full h-full flex items-center justify-center rounded-2xl relative z-0">
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} alt={product.name} 
-                          className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500 pointer-events-none"
-                          onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                        />
-                      ) : <div className="text-6xl drop-shadow-md">🧀</div>}
-                    </div>
+                    {product.image_url ? (
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-[#FBF9F4] flex items-center justify-center text-5xl">🧀</div>
+                    )}
                   </div>
 
-                  <div className="p-4 md:p-5 flex flex-col justify-between flex-grow bg-white">
-                    <div className="text-left">
-                      <span className="text-[9px] font-bold text-[#D4A373] uppercase tracking-widest">{product.category}</span>
-                      <h3 className="text-sm md:text-base font-bold text-[#3C2F2F] mt-0.5 mb-2 line-clamp-2 min-h-[40px] leading-tight">{product.name}</h3>
-                    </div>
-                    
-                    <div className="mt-2 pt-3 border-t border-gray-100 flex flex-col gap-3">
-                      <div className="text-left flex flex-col">
-                        {product.old_price && Number(product.old_price) > Number(product.price) ? (
-                          <span className="text-xs md:text-sm text-gray-400 line-through font-medium mb-0.5">₺{product.old_price}</span>
-                        ) : <span className="text-xs md:text-sm text-transparent font-medium mb-0.5 select-none">.</span>}
-                        <div className="text-base md:text-lg font-extrabold text-[#5e0d0f] leading-none">
-                          ₺{product.price} <span className="text-[10px] text-gray-400 font-medium">/ {product.unit || 'kg'}</span>
-                        </div>
+                  {/* Metin ve Buton İçerik Alanı (Padding ve boşluklar buraya dengelendi) */}
+                  <div className="p-4 md:p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-[#D4A373] tracking-wider uppercase block">{product.category}</span>
+                      <h3 className="font-bold text-[#3C2F2F] text-sm md:text-base truncate group-hover:text-[#5e0d0f] transition-colors">{product.name}</h3>
+                      <p className="text-gray-400 text-xs font-medium">1 {product.unit} Fiyatı</p>
+                      
+                      <div className="flex items-baseline gap-2 pt-2 border-t border-gray-50 mt-2">
+                        <span className="text-lg md:text-xl font-extrabold text-[#5e0d0f]">₺{product.price}</span>
+                        {product.old_price && Number(product.old_price) > Number(product.price) && (
+                          <span className="text-xs text-gray-400 line-through font-medium">₺{product.old_price}</span>
+                        )}
                       </div>
-
-                      <button 
-                        className="w-full bg-[#5e0d0f] text-white text-sm font-bold py-3 rounded-2xl hover:bg-[#D4A373] transition-all shadow-md active:scale-95" 
-                        onClick={(e) => { 
-                          if(isAdmin) e.stopPropagation(); 
-                          addToCart({ id: Number(product.id), name: String(product.name), price: Number(product.price), image_url: String(product.image_url || ''), category: String(product.category || 'PEYNİR'), unit: String(product.unit || 'kg') } as any);
-                        }}
-                      >
-                        Sepete Ekle
-                      </button>
                     </div>
+
+                    {/* Sepete Ekle Butonu */}
+                    <button 
+                      onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, image_url: product.image_url, category: product.category, unit: product.unit })}
+                      className="w-full bg-[#5e0d0f] hover:bg-[#3d080a] text-white transition-all duration-300 font-bold text-xs md:text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-[0.98]"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg> 
+                      Sepete Ekle
+                    </button>
                   </div>
+
                 </div>
               );
             })}
@@ -409,7 +414,7 @@ function UrunlerPage() {
               <div className="flex gap-2 mb-3">
                 <input 
                   type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
-                  placeholder="Yeni Kategori Adı..." className="flex-1 bg-white border border-[#D4A373]/20 rounded-xl px-3 text-sm focus:ring-1 focus:ring-[#D4A373] outline-none"
+                  placeholder="Yeni Kategori Adı..." className="flex-1 bg-white border border-[#D4A373]/20 rounded-xl px-3 text-sm focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
                 />
                 <button type="button" onClick={handleAddCategory} className="bg-green-600 text-white px-4 rounded-xl font-bold text-sm">+</button>
               </div>
@@ -436,7 +441,7 @@ function UrunlerPage() {
                 </div>
                 <div className="col-span-2">
                   <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Kategori</label>
-                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] outline-none appearance-none">
+                  <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] transition-all outline-none">
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
@@ -450,13 +455,13 @@ function UrunlerPage() {
                 </div>
                 <div className="col-span-2">
                   <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Birim Seçimi</label>
-                  <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] outline-none appearance-none">
+                  <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] transition-all outline-none">
                     <option value="kg">Kilogram (kg)</option><option value="Litre">Litre (L)</option><option value="Adet">Adet</option><option value="Paket">Paket</option><option value="Gram">Gram (g)</option>
                   </select>
                 </div>
               </div>
 
-              {/* 🛠️ GÜNCELLENEN DOSYA YÜKLEME ALANI */}
+              {/* DOSYA YÜKLEME ALANI */}
               <div className="col-span-2 bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300">
                 <input 
                   type="file" 

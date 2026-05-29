@@ -14,7 +14,7 @@ export default function GizlilikVeKvkkPage() {
         <div className="text-center mb-12 border-b border-gray-100 pb-8">
           <span className="text-[#D4A373] font-bold uppercase tracking-[0.2em] text-xs mb-3 block">Yasal Bilgilendirme</span>
           <h1 className="text-3xl md:text-4xl font-black text-[#5e0d0f] leading-tight">
-            GİZLİLİK POLİTİKASI VE KVKK AYDINLATMA METNİ
+            GİZLİLİK POLİTİKASI, KVKK AYDINLATMA METNİ VE ÇEREZ POLİTİKASI
           </h1>
           <div className="w-20 h-1 bg-[#D4A373] mx-auto rounded-full mt-4"></div>
         </div>
@@ -100,7 +100,7 @@ export default function GizlilikVeKvkkPage() {
               ÇEREZLER (COOKIES)
             </h2>
             <p className="text-gray-600 pl-1">
-              Site, Kullanıcı deneyimini iyileştirmek, sepet takibini yapmak ve oturum yönetimini sağlamak amacıyla tarayıcınızda çerezler (cookies) barındırabilir. Kullanıcılar diledikleri zaman tarayıcı ayarlarından çerezleri kapatma veya silme hakkına sahiptir. Çerezlerin kapatılması durumunda Site&apos;nin sepete ürün ekleme gibi temel fonksiyonları düzgün çalışmayabilir.
+              Site, Kullanıcı deneyimini iyileştirmek, dijital altyapımızın güvenli ve kararlı çalışması, alışveriş sepetinizin korunması ve üye giriş işlemlerinizin kesintisiz sürdürülebilmesi adına tarayıcınızda çerezler (cookies) barındırabilir. Kullanıcılar diledikleri zaman tarayıcı ayarlarından çerezleri kapatma veya silme hakkına sahiptir. Çerezlerin kapatılması durumunda sitemizdeki sipariş ve ödeme adımları dahil olmak üzere temel fonksiyonlar düzgün çalışmayabilir.
             </p>
           </section>
 

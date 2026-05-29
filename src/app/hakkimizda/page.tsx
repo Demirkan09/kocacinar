@@ -13,7 +13,7 @@ export default function Hakkimizda() {
               <div className="absolute -inset-4 border-2 border-[#D4A373]/30 rounded-[40px] transform group-hover:rotate-2 transition-transform duration-700"></div>
               <div className="relative h-[500px] md:h-[600px] rounded-[32px] overflow-hidden shadow-2xl">
 <Image
-  src="/about.jpg"
+  src="/about.jpeg"
   alt="Hakkımızda"
   fill
   priority={true} // 👈 LCP uyarısını çözer (Resmi öncelikli yükler)

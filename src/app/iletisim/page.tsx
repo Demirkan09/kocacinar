@@ -33,11 +33,11 @@ export default function Iletisim() {
             <div className="space-y-4">
               <div className="flex justify-between border-b border-white/10 pb-2">
                 <span>Hafta İçi</span>
-                <span className="font-bold">08:00 - 20:00</span>
+                <span className="font-bold">09:00 - 22:00</span>
               </div>
               <div className="flex justify-between border-b border-white/10 pb-2">
                 <span>Hafta Sonu</span>
-                <span className="font-bold">08:30 - 18:00</span>
+                <span className="font-bold">09:00 - 22:00</span>
               </div>
             </div>
             <a href="https://wa.me/905513404848" className="mt-8 w-full bg-[#D4A373] text-[#5e0d0f] font-bold py-4 rounded-2xl text-center hover:bg-white transition-all shadow-lg">

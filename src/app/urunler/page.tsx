@@ -478,7 +478,7 @@ function UrunlerPage() {
                     onClick={() => setFormData({...formData, image_url: ''})} 
                     className="text-[10px] text-red-500 hover:underline mt-1 block pl-1"
                   >
-                    Resmi Kaldır / Yeniden Seç
+                    Resmi Kaldır
                   </button>
                 )}
               </div>

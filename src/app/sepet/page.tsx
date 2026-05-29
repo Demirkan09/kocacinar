@@ -59,24 +59,24 @@ export default function SepetPage() {
 
     try {
       const res = await fetch('/api/checkout', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    cartItems: cart,
-    totalPrice: totalAmount,
-    shippingFee: shippingFee,
-    buyerInfo: buyerInfo
-  })
-});
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cartItems: cart,
+          totalPrice: totalAmount,
+          shippingFee: shippingFee,
+          buyerInfo: buyerInfo
+        })
+      });
 
       const data = await res.json();
 
-if (data.status === 'success' && data.paymentPageUrl) {
-      window.location.href = data.paymentPageUrl;
-    } else {
-      alert(`Ödeme başlatılamadı: ${data.errorMessage || 'Bilinmeyen hata'}`);
-      setIsProcessing(false);
-    }
+      if (data.status === 'success' && data.paymentPageUrl) {
+        window.location.href = data.paymentPageUrl;
+      } else {
+        alert(`Ödeme başlatılamadı: ${data.errorMessage || 'Bilinmeyen hata'}`);
+        setIsProcessing(false);
+      }
     } catch (err) {
       console.error('Ödeme hatası:', err);
       alert('Ödeme sunucusuyla iletişim kurulurken bir hata oluştu.');
@@ -322,11 +322,31 @@ if (data.status === 'success' && data.paymentPageUrl) {
 
               {/* AKSİYON BUTONLARI GRUBU */}
               <div className="flex flex-col gap-3 pt-2">
-                {/* ONLINE ÖDEME BUTONU */}
+                
+                {/* 🔒 ÜYE GİRİŞİ KONTROLÜ VE UYARI BALONCUĞU */}
+                {!isLoadingProfile && !buyerInfo.email && (
+                  <div className="bg-[#5e0d0f]/5 border border-[#5e0d0f]/20 rounded-2xl p-4 flex gap-3 items-start animate-in fade-in duration-300">
+                    <span className="text-base mt-0.5">💡</span>
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[#5e0d0f] uppercase tracking-wide mb-1">
+                        Online Ödeme İçin Giriş Gerekli
+                      </p>
+                      <p className="text-xs text-gray-600 leading-relaxed font-medium">
+                        Kredi veya banka kartı ile güvenli ödeme yapabilmek için <a href="/login" className="text-[#5e0d0f] font-bold underline hover:text-[#D4A373]">üye girişi yapmış olmanız</a> gereklidir. Üye değilseniz, siparişinizi aşağıdaki yeşil butona tıklayarak doğrudan <strong>WhatsApp</strong> üzerinden de kolayca tamamlayabilirsiniz.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* ONLINE ÖDEME BUTONU (Üye girişi yapılmadıysa kilitlenir ve rengi soluklaşır) */}
                 <button
                   onClick={handleOnlineCheckout}
-                  disabled={isProcessing || isLoadingProfile}
-                  className="w-full bg-[#5e0d0f] text-white py-3.5 px-4 rounded-2xl font-bold text-sm hover:bg-[#3d080a] active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                  disabled={isProcessing || isLoadingProfile || !buyerInfo.email}
+                  className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${
+                    buyerInfo.email && !isProcessing
+                      ? 'bg-[#5e0d0f] text-white hover:bg-[#3d080a] active:scale-[0.99]'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none border border-gray-300/30'
+                  }`}
                 >
                   {isProcessing ? (
                     <span>Güvenli Ödeme Sayfasına Yönlendiriliyorsunuz...</span>
@@ -347,7 +367,7 @@ if (data.status === 'success' && data.paymentPageUrl) {
                   <div className="flex-1 border-t border-gray-200"></div>
                 </div>
 
-                {/* WHATSAPP SİPARİŞ BUTONU */}
+                {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir kanka) */}
                 <button 
                   onClick={handleWhatsAppCheckout}
                   disabled={isLoadingProfile}

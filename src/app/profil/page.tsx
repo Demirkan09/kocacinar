@@ -27,6 +27,11 @@ function ProfileContent() {
   const [addrDistrict, setAddrDistrict] = useState('');
   const [addrDetail, setAddrDetail] = useState('');
 
+  // 📦 YENİ EKLENENLER: Sipariş Yönetimi State'leri
+  const [myOrders, setMyOrders] = useState<any[]>([]); // Kullanıcının siparişleri
+  const [adminOrders, setAdminOrders] = useState<any[]>([]); // Adminin gördüğü tüm siparişler
+  const [orderSearchQuery, setOrderSearchQuery] = useState(''); // Geçmiş siparişler için arama
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -38,6 +43,21 @@ function ProfileContent() {
       setShowToast(true);
     }
   }, [searchParams]);
+
+  // 📦 YENİ EKLENEN: Siparişleri Veritabanından Çekme
+  const loadOrders = async (isAdmin: boolean) => {
+    try {
+      if (isAdmin) {
+        const res = await fetch('/api/orders');
+        if (res.ok) setAdminOrders(await res.json());
+      }
+      // Her halükarda kendi siparişlerini çek
+      const resMe = await fetch('/api/orders/me');
+      if (resMe.ok) setMyOrders(await resMe.json());
+    } catch (e) { 
+      console.error('Siparişler çekilemedi', e); 
+    }
+  };
 
   // Kullanıcı verisini çekme
   useEffect(() => {
@@ -65,6 +85,9 @@ function ProfileContent() {
               console.error("Adres verisi dönüştürülemedi:", error);
             }
           }
+
+          // 📦 YENİ EKLENEN: Siparişleri Yükle
+          loadOrders(data.user.role === 'admin');
 
         } else {
           router.push('/login');
@@ -186,6 +209,22 @@ function ProfileContent() {
     }
   };
 
+  // 📦 YENİ EKLENEN: Admin Sipariş Güncelleme
+  const handleUpdateOrderStatus = async (id: number, status: string, trackingCode: string = '') => {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, tracking_code: trackingCode })
+      });
+      if (res.ok) {
+        setToastMessage('Sipariş güncellendi ✅');
+        setShowToast(true);
+        loadOrders(true); // Listeyi yenile
+      }
+    } catch (err) { alert('Hata oluştu'); }
+  };
+
   // Bildirimi otomatik kapatma
   useEffect(() => {
     if (showToast) {
@@ -221,8 +260,22 @@ function ProfileContent() {
 
   const currentFN = firstName || user.first_name || user.firstname || user.firstName || '';
   const currentLN = lastName || user.last_name || user.lastname || user.lastName || '';
+  const isAdmin = user.role === 'admin';
   
   const avatarInitials = `${currentFN ? currentFN.charAt(0).toUpperCase() : ''}${currentLN ? currentLN.charAt(0).toUpperCase() : ''}`;
+
+  // 📦 Sipariş Filtreleri ve Durum Ayarları
+  const activeOrders = adminOrders.filter(o => o.status !== 'TESLIM_EDILDI' && o.status !== 'IPTAL');
+  const pastOrders = adminOrders.filter(o => o.status === 'TESLIM_EDILDI' || o.status === 'IPTAL')
+    .filter(o => o.order_no.toLowerCase().includes(orderSearchQuery.toLowerCase()) || 
+                 o.buyer_name.toLowerCase().includes(orderSearchQuery.toLowerCase()));
+
+  const statusConfig: any = {
+    'HAZIRLANIYOR': { label: 'Ürün Hazırlanıyor', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    'KARGOYA_VERILDI': { label: 'Kargoya Verildi', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    'TESLIM_EDILDI': { label: 'Teslim Edildi', color: 'bg-green-100 text-green-700 border-green-200' },
+    'IPTAL': { label: 'İptal Edildi', color: 'bg-red-100 text-red-700 border-red-200' }
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] flex flex-col md:flex-row font-sans relative">
@@ -238,6 +291,7 @@ function ProfileContent() {
               {currentFN} {currentLN}
             </h2>
             <p className="text-gray-500 text-sm mt-1">{user.email}</p>
+            {isAdmin && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-1 rounded font-bold uppercase mt-2">Yönetici</span>}
           </div>
 
           <nav className="space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible pb-4 md:pb-0 hide-scrollbar gap-2 md:gap-0">
@@ -247,12 +301,32 @@ function ProfileContent() {
             <button onClick={() => setActiveTab('adres')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'adres' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
               <span className="text-lg">📍</span> Adreslerim
             </button>
-            <button onClick={() => setActiveTab('siparis')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'siparis' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
-              <span className="text-lg">📦</span> Siparişlerim
-            </button>
+            
+            {/* SİPARİŞ SEKME - KULLANICI */}
+            {!isAdmin && (
+              <button onClick={() => setActiveTab('siparis')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'siparis' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+                <span className="text-lg">📦</span> Siparişlerim
+              </button>
+            )}
+
             <button onClick={() => setActiveTab('favori')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'favori' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
               <span className="text-lg">❤️</span> Favorilerim
             </button>
+
+            {/* SİPARİŞ SEKMELERİ - ADMİN */}
+            {isAdmin && (
+              <>
+                <div className="my-4 border-t border-gray-100 pt-4"></div>
+                <button onClick={() => setActiveTab('aktif_siparisler')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 ${activeTab === 'aktif_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+                  <span className="text-lg">🚀</span> Siparişler (Aktif)
+                  {activeOrders.length > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{activeOrders.length}</span>}
+                </button>
+                <button onClick={() => setActiveTab('gecmis_siparisler')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 ${activeTab === 'gecmis_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+                  <span className="text-lg">📚</span> Geçmiş Siparişler
+                </button>
+              </>
+            )}
+
           </nav>
         </div>
 
@@ -263,9 +337,9 @@ function ProfileContent() {
 
       {/* SAĞ İÇERİK PANELİ */}
       <div className="flex-1 p-4 md:p-12">
-        <div className="bg-white rounded-[32px] p-6 md:p-12 shadow-sm border border-white max-w-4xl mx-auto h-full min-h-[600px]">
+        <div className="bg-white rounded-[32px] p-6 md:p-12 shadow-sm border border-white max-w-5xl mx-auto h-full min-h-[600px]">
           
-          {/* ================= KİŞİSEL BİLGİLER TABI ================= */}
+          {/* ================= KİŞİSEL BİLGİLER TABI (Senin Kodun) ================= */}
           {activeTab === 'kisisel' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-10">
@@ -308,7 +382,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= ADRESLERİM TABI ================= */}
+          {/* ================= ADRESLERİM TABI (Senin Kodun) ================= */}
           {activeTab === 'adres' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-center mb-10">
@@ -393,15 +467,78 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= SİPARİŞLERİM TABI ================= */}
-          {activeTab === 'siparis' && (
-            <div className="text-center py-20 animate-in fade-in duration-500">
-              <div className="text-6xl mb-6 opacity-30">📦</div>
-              <h4 className="text-2xl font-bold text-[#3C2F2F] mb-2">Siparişiniz Bulunmuyor</h4>
-              <p className="text-gray-500">Lezzetli ürünlerimizden sipariş vererek burayı doldurabilirsiniz.</p>
-              <a href="/urunler" className="inline-block mt-8 bg-[#5e0d0f] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4A373] transition-all">
-                Ürünleri İncele
-              </a>
+          {/* ================= SİPARİŞLERİM TABI (KULLANICI) ================= */}
+          {activeTab === 'siparis' && !isAdmin && (
+            <div className="animate-in fade-in duration-500">
+              <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-6">Sipariş Geçmişim</h3>
+              
+              {myOrders.length === 0 ? (
+                <div className="text-center py-20 bg-gray-50 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="text-6xl mb-6 opacity-30">📦</div>
+                  <h4 className="text-2xl font-bold text-[#3C2F2F] mb-2">Siparişiniz Bulunmuyor</h4>
+                  <p className="text-gray-500">Lezzetli ürünlerimizden sipariş vererek burayı doldurabilirsiniz.</p>
+                  <a href="/urunler" className="inline-block mt-8 bg-[#5e0d0f] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4A373] transition-all">
+                    Ürünleri İncele
+                  </a>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {myOrders.map(order => {
+                    const status = statusConfig[order.status] || statusConfig['HAZIRLANIYOR'];
+                    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                    return (
+                      <div key={order.id} className="border border-gray-200 rounded-3xl p-6 shadow-sm hover:border-[#D4A373]/50 transition-colors">
+                        <div className="flex flex-col md:flex-row justify-between md:items-center border-b border-gray-100 pb-4 mb-5 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-1">Sipariş No</p>
+                            <p className="font-extrabold text-[#3C2F2F] text-lg">{order.order_no}</p>
+                            <p className="text-xs text-gray-400 mt-1">{new Date(order.created_at).toLocaleDateString('tr-TR')} tarihinde verildi.</p>
+                          </div>
+                          <div className={`px-5 py-2.5 rounded-xl border text-sm font-bold ${status.color} flex items-center gap-2 shadow-sm`}>
+                            <span className="w-2.5 h-2.5 rounded-full bg-current animate-pulse"></span> {status.label}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 mb-6">
+                          {items.map((item: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center bg-[#FBF9F4] p-3 rounded-xl border border-gray-100">
+                              <span className="font-bold text-[#3C2F2F] text-sm">{item.quantity} Adet <span className="text-gray-500 font-medium">x {item.name}</span></span>
+                              <span className="font-bold text-[#5e0d0f]">₺{item.price * item.quantity}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="bg-gray-50 p-5 rounded-2xl flex flex-col md:flex-row justify-between gap-6 text-sm border border-gray-100">
+                          <div className="flex-1">
+                            <p className="font-bold text-gray-500 uppercase tracking-wider text-[11px] mb-2">Teslimat Adresi</p>
+                            <p className="font-medium text-[#3C2F2F] leading-relaxed">{order.shipping_address}</p>
+                            {order.tracking_code && (
+                              <div className="mt-3 bg-white p-3 border border-blue-100 rounded-xl flex items-center gap-2">
+                                <span className="text-lg">🚚</span>
+                                <div>
+                                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">Kargo Takip Kodu</p>
+                                  <p className="font-bold text-blue-800">{order.tracking_code}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right md:min-w-[180px] md:border-l border-gray-200 md:pl-6 flex flex-col justify-end pt-4 md:pt-0">
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-500 flex justify-between"><span>Ara Toplam:</span> <span>₺{order.subtotal}</span></p>
+                              <p className="text-xs text-gray-500 flex justify-between"><span>Kargo:</span> <span>{order.shipping_fee > 0 ? `₺${order.shipping_fee}` : 'Ücretsiz'}</span></p>
+                            </div>
+                            <div className="border-t border-gray-200 my-2"></div>
+                            <p className="text-xl font-extrabold text-[#5e0d0f] flex justify-between items-end">
+                              <span className="text-xs text-gray-500 uppercase tracking-widest pb-1 font-bold">Toplam</span> 
+                              ₺{order.total_amount}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -411,6 +548,168 @@ function ProfileContent() {
               <div className="text-6xl mb-6 opacity-30">❤️</div>
               <h4 className="text-2xl font-bold text-[#3C2F2F] mb-2">Favori Ürününüz Yok</h4>
               <p className="text-gray-500">Beğendiğiniz ürünleri favorilere ekleyerek hızlıca ulaşabilirsiniz.</p>
+            </div>
+          )}
+
+          {/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
+          {activeTab === 'aktif_siparisler' && isAdmin && (
+            <div className="animate-in fade-in duration-500">
+              <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-6 flex items-center gap-3">
+                Aktif Siparişler 
+                <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full shadow-sm">{activeOrders.length}</span>
+              </h3>
+              
+              {activeOrders.length === 0 ? (
+                <div className="text-center py-16 text-gray-500 bg-[#FBF9F4] rounded-3xl border border-dashed border-[#D4A373]/30">Bekleyen aktif sipariş yok. 🥳</div>
+              ) : (
+                <div className="space-y-6">
+                  {activeOrders.map(order => {
+                    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+                    return (
+                      <div key={order.id} className="border-2 border-amber-200 bg-amber-50/30 rounded-3xl p-6 shadow-sm relative overflow-hidden">
+                        
+                        <div className="flex justify-between items-end border-b border-amber-200/50 pb-4 mb-4">
+                          <div>
+                            <p className="text-[10px] text-amber-700 font-bold uppercase tracking-widest mb-1">Sipariş No</p>
+                            <h4 className="font-extrabold text-[#3C2F2F] text-lg">{order.order_no}</h4>
+                          </div>
+                          <span className="text-xs font-bold text-amber-800 bg-amber-100 px-3 py-1.5 rounded-lg shadow-sm">
+                            {new Date(order.created_at).toLocaleString('tr-TR')}
+                          </span>
+                        </div>
+                        
+                        <div className="grid lg:grid-cols-2 gap-6 mb-6">
+                          <div className="bg-white p-4 rounded-2xl border border-amber-100">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-2">Alıcı Bilgileri</p>
+                            <p className="font-bold text-[#3C2F2F] text-base">{order.buyer_name}</p>
+                            <p className="text-sm text-gray-500 mb-2">{order.buyer_phone}</p>
+                            <p className="text-sm font-medium text-gray-700 leading-relaxed bg-gray-50 p-2 rounded-xl">{order.shipping_address}</p>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-inner flex flex-col h-full max-h-48">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-2">Sepet İçeriği</p>
+                            <div className="overflow-y-auto flex-1 pr-2 space-y-1">
+                              {items.map((i:any, idx:number) => (
+                                <div key={idx} className="flex justify-between text-xs font-bold text-[#3C2F2F] py-1 border-b border-gray-50 last:border-0">
+                                  <span>{i.quantity}x {i.name}</span>
+                                  <span>₺{i.price * i.quantity}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-amber-100 flex justify-between items-center">
+                              <span className="text-xs font-bold text-gray-500">Kargo: ₺{order.shipping_fee}</span>
+                              <span className="font-extrabold text-[#5e0d0f] text-lg">Toplam: ₺{order.total_amount}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Yönetim Paneli Alanı */}
+                        <div className="flex flex-col md:flex-row gap-4 bg-white p-5 rounded-2xl border border-amber-200 items-end shadow-sm">
+                          <div className="flex-1 w-full">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Durum Güncelle</label>
+                            <select 
+                              className="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-bold text-[#3C2F2F] outline-none focus:border-[#D4A373] transition-colors appearance-none bg-gray-50"
+                              value={order.status}
+                              onChange={(e) => handleUpdateOrderStatus(order.id, e.target.value, order.tracking_code)}
+                            >
+                              <option value="HAZIRLANIYOR">Ürün Hazırlanıyor</option>
+                              <option value="KARGOYA_VERILDI">Kargoya Verildi</option>
+                              <option value="IPTAL">İptal Et</option>
+                            </select>
+                          </div>
+                          <div className="flex-1 w-full">
+                            <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Kargo Takip Kodu</label>
+                            <div className="flex gap-2">
+                              <input 
+                                type="text" 
+                                placeholder="Örn: YK-12345" 
+                                defaultValue={order.tracking_code || ''}
+                                id={`track-${order.id}`}
+                                className="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-bold text-[#3C2F2F] outline-none focus:border-blue-300 transition-colors bg-gray-50"
+                              />
+                              <button 
+                                onClick={() => {
+                                  const val = (document.getElementById(`track-${order.id}`) as HTMLInputElement).value;
+                                  handleUpdateOrderStatus(order.id, 'KARGOYA_VERILDI', val);
+                                }}
+                                className="bg-blue-600 text-white px-5 rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                              >Kaydet</button>
+                            </div>
+                          </div>
+                          <div className="w-full md:w-auto mt-2 md:mt-0">
+                            <button 
+                              onClick={() => {
+                                if(confirm("Siparişi teslim edildi olarak işaretlemek istiyor musunuz? Sipariş geçmiş sekmesine taşınacaktır.")) {
+                                  handleUpdateOrderStatus(order.id, 'TESLIM_EDILDI', order.tracking_code);
+                                }
+                              }}
+                              className="w-full bg-green-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-green-700 shadow-md whitespace-nowrap transition-transform active:scale-95"
+                            >
+                              ✓ Teslim Edildi
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= GEÇMİŞ SİPARİŞLER (ADMİN) ================= */}
+          {activeTab === 'gecmis_siparisler' && isAdmin && (
+            <div className="animate-in fade-in duration-500">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-[#FBF9F4] p-4 rounded-2xl border border-[#D4A373]/20">
+                <h3 className="text-2xl font-extrabold text-[#5e0d0f]">Geçmiş Sipariş Arşivi</h3>
+                <div className="relative w-full md:w-72">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                  <input 
+                    type="text" 
+                    placeholder="Sipariş No veya Alıcı Ara..." 
+                    value={orderSearchQuery}
+                    onChange={(e) => setOrderSearchQuery(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#D4A373] outline-none shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-widest text-[10px] border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4">Sipariş No</th>
+                      <th className="px-6 py-4">Alıcı İsmi</th>
+                      <th className="px-6 py-4">İşlem Tarihi</th>
+                      <th className="px-6 py-4">Toplam Tutar</th>
+                      <th className="px-6 py-4 text-right">Son Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {pastOrders.map(order => (
+                      <tr key={order.id} className="hover:bg-[#FBF9F4] transition-colors">
+                        <td className="px-6 py-4 font-bold text-[#5e0d0f] whitespace-nowrap">{order.order_no}</td>
+                        <td className="px-6 py-4 font-medium text-[#3C2F2F] whitespace-nowrap">{order.buyer_name}</td>
+                        <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('tr-TR')}</td>
+                        <td className="px-6 py-4 font-extrabold text-[#3C2F2F] whitespace-nowrap">₺{order.total_amount}</td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide shadow-sm inline-block ${order.status === 'IPTAL' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                            {order.status === 'IPTAL' ? 'İPTAL EDİLDİ' : 'TESLİM EDİLDİ'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {pastOrders.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="text-center py-12 text-gray-500 font-medium">
+                          <span className="text-4xl block mb-2 opacity-50">📂</span>
+                          Geçmiş sipariş bulunamadı veya arama kriterinize uyan kayıt yok.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -429,7 +728,6 @@ function ProfileContent() {
   );
 }
 
-// Next.js App Router standartları gereği useSearchParams() kullanımı Suspense sarmalayıcısı gerektirir build hatasını önlemek için
 export default function ProfilePage() {
   return (
     <Suspense fallback={

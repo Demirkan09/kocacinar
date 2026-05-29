@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'İsim ve fiyat alanları zorunludur.' }, { status: 400 });
     }
 
-    const finalImageUrl = image_url || '/about.jpg';
+    const finalImageUrl = image_url || '/default.png';
     const parsedOldPrice = old_price ? parseFloat(old_price) : null;
 
     // Yeni ürünün en arkada düzgün listelenmesi için maksimum sıra numarasını buluyoruz

@@ -23,8 +23,19 @@ export default function SepetPage() {
 
   // İşlem durumlarını kontrol eden state tanımlamaları
   const [isProcessing, setIsProcessing] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-
+const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selectedId = e.target.value;
+  const selected = savedAddresses.find(a => a.id === selectedId);
+  if (selected) {
+    setBuyerInfo(prev => ({
+      ...prev,
+      address: `${selected.detail || ''} ${selected.district || ''} / ${selected.city || ''}`,
+      city: selected.city || 'Aydın'
+    }));
+  }
+};
   // Sipariş listesini WhatsApp hattına iletme fonksiyonu
   const handleWhatsAppCheckout = () => {
     let message = `*Koca Çınar Şarküteri - Yeni Sipariş*\n\n`;
@@ -124,6 +135,13 @@ export default function SepetPage() {
               console.error('Adres JSON formatı çözümlenemedi, ham metin kullanılacak.', parseError);
               formattedAddress = String(profile.address);
             }
+            // Adresleri çözümle
+if (profile.address) {
+  try {
+    const parsed = typeof profile.address === 'string' ? JSON.parse(profile.address) : profile.address;
+    setSavedAddresses(Array.isArray(parsed) ? parsed : []);
+  } catch (e) { console.error(e); }
+}
           }
 
           setBuyerInfo({
@@ -271,7 +289,17 @@ export default function SepetPage() {
               {/* TESLİMAT BİLGİLERİ ALANI (Veritabanından Otomatik Olarak Çekilir) */}
               <div className="space-y-3 bg-[#F5F0E6]/30 p-4 rounded-2xl border border-[#D4A373]/20">
                 <h4 className="text-xs font-bold text-[#5e0d0f]/80 uppercase tracking-wider mb-2">📋 Teslimat ve Fatura Bilgileri</h4>
-                
+                {savedAddresses.length > 0 && (
+  <select 
+    onChange={handleAddressSelect}
+    className="w-full bg-white border border-[#D4A373]/30 rounded-xl py-2 px-3 text-xs text-[#5e0d0f] font-bold mb-3 outline-none cursor-pointer"
+  >
+    <option value="">Kayıtlı bir adres seçin...</option>
+    {savedAddresses.map((adr) => (
+      <option key={adr.id} value={adr.id}>{adr.title || 'Adresim'}</option>
+    ))}
+  </select>
+)}
                 {isLoadingProfile ? (
                   <div className="text-xs text-gray-500 animate-pulse py-2">Profil bilgileri yükleniyor...</div>
                 ) : (
@@ -366,6 +394,7 @@ export default function SepetPage() {
                   <span className="text-gray-400 text-xs px-2 font-medium">veya</span>
                   <div className="flex-1 border-t border-gray-200"></div>
                 </div>
+                
 
                 {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir kanka) */}
                 <button 

@@ -27,10 +27,10 @@ function ProfileContent() {
   const [addrDistrict, setAddrDistrict] = useState('');
   const [addrDetail, setAddrDetail] = useState('');
 
-  // 📦 YENİ EKLENENLER: Sipariş Yönetimi State'leri
-  const [myOrders, setMyOrders] = useState<any[]>([]); // Kullanıcının siparişleri
-  const [adminOrders, setAdminOrders] = useState<any[]>([]); // Adminin gördüğü tüm siparişler
-  const [orderSearchQuery, setOrderSearchQuery] = useState(''); // Geçmiş siparişler için arama
+  // 📦 Sipariş Yönetimi State'leri
+  const [myOrders, setMyOrders] = useState<any[]>([]); 
+  const [adminOrders, setAdminOrders] = useState<any[]>([]); 
+  const [orderSearchQuery, setOrderSearchQuery] = useState(''); 
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,14 +44,13 @@ function ProfileContent() {
     }
   }, [searchParams]);
 
-  // 📦 YENİ EKLENEN: Siparişleri Veritabanından Çekme
+  // Siparişleri Veritabanından Çekme
   const loadOrders = async (isAdmin: boolean) => {
     try {
       if (isAdmin) {
         const res = await fetch('/api/orders');
         if (res.ok) setAdminOrders(await res.json());
       }
-      // Her halükarda kendi siparişlerini çek
       const resMe = await fetch('/api/orders/me');
       if (resMe.ok) setMyOrders(await resMe.json());
     } catch (e) { 
@@ -76,7 +75,6 @@ function ProfileContent() {
           setLastName(data.user.last_name || data.user.lastname || data.user.lastName || '');
           setPhone(data.user.phone || ''); 
 
-          // Veritabanından gelen adresi JSON olarak ayrıştır ve listeye koy
           if (data.user.address) {
             try {
               const parsedAddresses = typeof data.user.address === 'string' ? JSON.parse(data.user.address) : data.user.address;
@@ -86,7 +84,6 @@ function ProfileContent() {
             }
           }
 
-          // 📦 YENİ EKLENEN: Siparişleri Yükle
           loadOrders(data.user.role === 'admin');
 
         } else {
@@ -209,7 +206,7 @@ function ProfileContent() {
     }
   };
 
-  // 📦 YENİ EKLENEN: Admin Sipariş Güncelleme
+  // Admin Sipariş Güncelleme
   const handleUpdateOrderStatus = async (id: number, status: string, trackingCode: string = '') => {
     try {
       const res = await fetch('/api/orders', {
@@ -220,7 +217,7 @@ function ProfileContent() {
       if (res.ok) {
         setToastMessage('Sipariş güncellendi ✅');
         setShowToast(true);
-        loadOrders(true); // Listeyi yenile
+        loadOrders(true); 
       }
     } catch (err) { alert('Hata oluştu'); }
   };
@@ -264,7 +261,7 @@ function ProfileContent() {
   
   const avatarInitials = `${currentFN ? currentFN.charAt(0).toUpperCase() : ''}${currentLN ? currentLN.charAt(0).toUpperCase() : ''}`;
 
-  // 📦 Sipariş Filtreleri ve Durum Ayarları
+  // Sipariş Filtreleri ve Durum Ayarları
   const activeOrders = adminOrders.filter(o => o.status !== 'TESLIM_EDILDI' && o.status !== 'IPTAL');
   const pastOrders = adminOrders.filter(o => o.status === 'TESLIM_EDILDI' || o.status === 'IPTAL')
     .filter(o => o.order_no.toLowerCase().includes(orderSearchQuery.toLowerCase()) || 
@@ -309,10 +306,6 @@ function ProfileContent() {
               </button>
             )}
 
-            <button onClick={() => setActiveTab('favori')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'favori' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
-              <span className="text-lg">❤️</span> Favorilerim
-            </button>
-
             {/* SİPARİŞ SEKMELERİ - ADMİN */}
             {isAdmin && (
               <>
@@ -339,7 +332,7 @@ function ProfileContent() {
       <div className="flex-1 p-4 md:p-12">
         <div className="bg-white rounded-[32px] p-6 md:p-12 shadow-sm border border-white max-w-5xl mx-auto h-full min-h-[600px]">
           
-          {/* ================= KİŞİSEL BİLGİLER TABI (Senin Kodun) ================= */}
+          {/* ================= KİŞİSEL BİLGİLER TABI ================= */}
           {activeTab === 'kisisel' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-10">
@@ -382,7 +375,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= ADRESLERİM TABI (Senin Kodun) ================= */}
+          {/* ================= ADRESLERİM TABI (RENKLERİ DÜZELTİLDİ) ================= */}
           {activeTab === 'adres' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-center mb-10">
@@ -403,19 +396,23 @@ function ProfileContent() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Adres Başlığı (Ev, İş vb.)</label>
-                      <input type="text" value={addrTitle} onChange={(e) => setAddrTitle(e.target.value)} placeholder="Örn: Ev Adresim" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
+                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
+                      <input type="text" value={addrTitle} onChange={(e) => setAddrTitle(e.target.value)} placeholder="Örn: Ev Adresim" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">İl</label>
-                      <input type="text" value={addrCity} onChange={(e) => setAddrCity(e.target.value)} placeholder="Örn: Aydın" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
+                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
+                      <input type="text" value={addrCity} onChange={(e) => setAddrCity(e.target.value)} placeholder="Örn: Aydın" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">İlçe</label>
-                      <input type="text" value={addrDistrict} onChange={(e) => setAddrDistrict(e.target.value)} placeholder="Örn: Efeler" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
+                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
+                      <input type="text" value={addrDistrict} onChange={(e) => setAddrDistrict(e.target.value)} placeholder="Örn: Efeler" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Açık Adres</label>
-                      <textarea rows={3} value={addrDetail} onChange={(e) => setAddrDetail(e.target.value)} placeholder="Mahalle, sokak, bina no..." className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#D4A373] outline-none transition-all resize-none"></textarea>
+                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
+                      <textarea rows={3} value={addrDetail} onChange={(e) => setAddrDetail(e.target.value)} placeholder="Mahalle, sokak, bina no..." className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all resize-none"></textarea>
                     </div>
                   </div>
                   <div className="mt-6 flex gap-3 justify-end">
@@ -542,14 +539,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= FAVORİLERİM TABI ================= */}
-          {activeTab === 'favori' && (
-            <div className="text-center py-20 animate-in fade-in duration-500">
-              <div className="text-6xl mb-6 opacity-30">❤️</div>
-              <h4 className="text-2xl font-bold text-[#3C2F2F] mb-2">Favori Ürününüz Yok</h4>
-              <p className="text-gray-500">Beğendiğiniz ürünleri favorilere ekleyerek hızlıca ulaşabilirsiniz.</p>
-            </div>
-          )}
+        
 
           {/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
           {activeTab === 'aktif_siparisler' && isAdmin && (
@@ -622,7 +612,7 @@ function ProfileContent() {
                             <div className="flex gap-2">
                               <input 
                                 type="text" 
-                                placeholder="Örn: YK-12345" 
+                                placeholder="Örn: ArasKargo-12345" 
                                 defaultValue={order.tracking_code || ''}
                                 id={`track-${order.id}`}
                                 className="w-full border-2 border-gray-100 p-3 rounded-xl text-sm font-bold text-[#3C2F2F] outline-none focus:border-blue-300 transition-colors bg-gray-50"
@@ -669,7 +659,7 @@ function ProfileContent() {
                     placeholder="Sipariş No veya Alıcı Ara..." 
                     value={orderSearchQuery}
                     onChange={(e) => setOrderSearchQuery(e.target.value)}
-                    className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium focus:ring-2 focus:ring-[#D4A373] outline-none shadow-sm"
+                    className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-[#3C2F2F] focus:ring-2 focus:ring-[#D4A373] outline-none shadow-sm"
                   />
                 </div>
               </div>

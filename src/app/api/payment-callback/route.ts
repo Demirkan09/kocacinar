@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import Iyzipay from 'iyzipay';
+import { query } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
-    // Iyzico callback isteğini x-www-form-urlencoded olarak atar
     const formData = await request.formData();
     const token = formData.get('token');
-    console.log("Gelen Veriler -> Token:", token);
+    
     if (!token) {
-      console.log("HATA: Iyzico'dan token gelmedi!");
-      return NextResponse.json({ error: 'Token bulunamadı' }, { status: 400 });
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Token_bulunamadi`, 303);
     }
-      console.log("Iyzico Config Kontrolü");
+    
     // Iyzipay ayarlarını başlat
     const iyzipay = new Iyzipay({
       apiKey: process.env.IYZICO_API_KEY!,
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
       uri: process.env.IYZICO_BASE_URL || 'https://sandbox-api.iyzipay.com'
     });
 
-    // Token ile iyzico'ya gidip ödemenin gerçekten başarılı olup olmadığını sorguluyoruz (Güvenlik Önlemi)
+    // Token ile iyzico'ya gidip ödemenin gerçekten başarılı olup olmadığını sorguluyoruz
     const checkPaymentStatus = () => {
       return new Promise((resolve, reject) => {
         iyzipay.checkoutForm.retrieve({
@@ -33,27 +32,26 @@ export async function POST(request: Request) {
     };
 
     const iyzicoResult: any = await checkPaymentStatus();
-    console.log("=== CALLBACK DOĞRULAMA CEVABI ===", iyzicoResult);
+    
     if (iyzicoResult.status === 'success' && iyzicoResult.paymentStatus === 'SUCCESS') {
       
-      // === BURASI SİPARİŞİ ONAYLAMA ALANI ===
-      // 1. Kardo, burada Supabase'e (DB) gidip sipariş durumunu "Ödendi" yapacaksın.
-      // 2. Stokları düşebilirsin.
-      // 3. Sepeti temizlemek için frontend'e bir işaret gönderebilirsin.
-      
-      console.log("Ödeme başarıyla doğrulandı, sipariş onaylanıyor...");
+      // 1. ÖDEME BAŞARILI -> SİPARİŞİ DB'DE BUL VE HAZIRLANIYOR YAP
+      if (iyzicoResult.basketId) {
+         await query("UPDATE orders SET status = 'HAZIRLANIYOR' WHERE order_no = $1", [iyzicoResult.basketId]);
+      }
 
-      // Müşteriyi sitendeki başarılı sayfasına yönlendiriyoruz
-      // Kullanıcının tarayıcısında bu sayfa açılacak
-      return NextResponse.redirect(new URL(`/odeme-basarili?token=${token}`, request.url), 303);
+      // Kullanıcıyı direkt kendi siparişlerini göreceği Profil sekmesine yolluyoruz.
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/profil?tab=siparis&success=true`, 303);
     } else {
-      console.log("Doğrulama başarısız! Iyzico hata mesajı:", iyzicoResult.errorMessage);
-      // Ödeme doğrulaması başarısızsa
-      return NextResponse.redirect(new URL('/odeme-basarisiz?reason=verification_failed', request.url), 303);
+      
+      // 2. ÖDEME İPTAL/BAŞARISIZ -> SİPARİŞİ IPTAL YAP
+      if (iyzicoResult.basketId) {
+         await query("UPDATE orders SET status = 'IPTAL' WHERE order_no = $1", [iyzicoResult.basketId]);
+      }
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Odeme_basarisiz`, 303);
     }
 
   } catch (error: any) {
-    console.error("Callback Error:", error);
-    return NextResponse.redirect(new URL('/odeme-basarisiz?reason=server_error', request.url), 303);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Sistem_Hatasi`, 303);
   }
 }

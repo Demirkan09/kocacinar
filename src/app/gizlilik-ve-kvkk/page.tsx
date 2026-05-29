@@ -42,7 +42,7 @@ export default function GizlilikVeKvkkPage() {
             <p className="mb-4">Site üzerinden sipariş oluşturmanız veya üye olmanız durumunda aşağıdaki kişisel verileriniz işlenmektedir:</p>
             <ul className="space-y-3 pl-2">
               <li className="flex items-start gap-2"><span className="text-[#D4A373]">🔸</span> <strong>Kimlik Bilgileri:</strong> Ad, Soyad.</li>
-              <li className="flex items-start gap-2"><span className="text-[#D4A373]">🔸</span> <strong>İletişim Bilgileri:</strong> E-posta adresi, telephone numarası, fatura ve teslimat adresi.</li>
+              <li className="flex items-start gap-2"><span className="text-[#D4A373]">🔸</span> <strong>İletişim Bilgileri:</strong> E-posta adresi, telefon numarası, fatura ve teslimat adresi.</li>
               <li className="flex items-start gap-2"><span className="text-[#D4A373]">🔸</span> <strong>Müşteri İşlem Bilgileri:</strong> Sipariş geçmişi, talep ve şikayet bilgileri, IP adresi.</li>
               <li className="flex items-start gap-2">
                 <span className="text-[#D4A373]">🔸</span> 

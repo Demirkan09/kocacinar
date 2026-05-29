@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useCart } from '@/app/components/cart';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+
 interface Product {
   id: number;
   name: string;
@@ -19,23 +20,23 @@ function UrunlerPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('HEPSİ');
   const searchParams = useSearchParams();
   const searchQuery = searchParams?.get('q') || '';
+  
   // Sürükle-Bırak için State
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // Kategori Kaydırma Ref'i
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
-  // Kategoriler (LocalStorage ile tarayıcıda kalıcı yaptık)
+  // Kategoriler (LocalStorage ile tarayıcıda kalıcı)
   const [categories, setCategories] = useState<string[]>([
     'PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'
   ]);
 
-  // Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolünü burada yapıyoruz:
+  // Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolü
   useEffect(() => {
     const saved = localStorage.getItem('kocacinar_categories');
     if (saved) {
@@ -43,7 +44,6 @@ function UrunlerPage() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setCategories(parsed);
-          // Eğer seçili olan varsayılan kategori listede yoksa ilk elemanı seçelim
           setFormData(prev => ({ ...prev, category: parsed[0] }));
         }
       } catch (e) {
@@ -56,6 +56,26 @@ function UrunlerPage() {
     name: '', price: '', old_price: '', image_url: '', category: categories[0] || 'PEYNİR', unit: 'kg' 
   });
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // 🛠️ YENİ: Seçilen resmi Base64 formatına dönüştüren fonksiyon (Canlı sunucu uyumluluğu için)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Canlı sunucularda şişme yapmaması için 2MB dosya boyutu kontrolü
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Yüklemek istediğiniz resim çok büyük! Lütfen 2MB'tan küçük bir görsel seçiniz.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Oluşan Base64 string metnini doğrudan image_url alanına eşitliyoruz
+        setFormData(prev => ({ ...prev, image_url: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -87,7 +107,6 @@ function UrunlerPage() {
     fetchProducts();
   }, []);
 
-  // ✅ KATEGORİ SAĞA SOLA KAYDIRMA FONKSİYONLARI
   const scrollCategory = (direction: 'left' | 'right') => {
     if (categoryScrollRef.current) {
       const offset = direction === 'left' ? -250 : 250;
@@ -95,7 +114,6 @@ function UrunlerPage() {
     }
   };
 
-  // ✅ KATEGORİ YÖNETİMİ (Sıralama, Ekleme, Silme)
   const saveCategories = (newCats: string[]) => {
     setCategories(newCats);
     localStorage.setItem('kocacinar_categories', JSON.stringify(newCats));
@@ -128,34 +146,29 @@ function UrunlerPage() {
     }
   };
 
-  // ✅ ÜRÜN SÜRÜKLE BIRAK FONKSİYONLARI (DnD)
   const handleDragStart = (index: number) => { setDraggedIndex(index); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
   
   const handleDrop = async (dropIndex: number) => {
     if (draggedIndex === null || draggedIndex === dropIndex) return;
 
-    // 1. Sürüklenen ve hedef olan ürünleri filtrelenmiş listeden nokta atışı buluyoruz
     const draggedProduct = filteredProducts[draggedIndex];
     const targetProduct = filteredProducts[dropIndex];
 
     if (!draggedProduct || !targetProduct) return;
 
-    // 2. Bu ürünlerin asıl ana listedeki (products) gerçek indekslerini buluyoruz
     const mainDraggedIdx = products.findIndex(p => p.id === draggedProduct.id);
     const mainTargetIdx = products.findIndex(p => p.id === targetProduct.id);
 
     if (mainDraggedIdx === -1 || mainTargetIdx === -1) return;
 
-    // 3. Ana listeyi klonlayıp yer değiştirme işlemini yapıyoruz
     const newProducts = [...products];
     newProducts.splice(mainDraggedIdx, 1);
     newProducts.splice(mainTargetIdx, 0, draggedProduct);
 
-    setProducts(newProducts); // UI anında güncellenir
+    setProducts(newProducts);
     setDraggedIndex(null);
 
-    // 4. Veritabanına yeni sıralamayı tertemiz gönderiyoruz
     const reorderData = newProducts.map((p, i) => ({ id: p.id, sort_order: i }));
     try {
       await fetch('/api/products', {
@@ -168,11 +181,10 @@ function UrunlerPage() {
     }
   };
 
-  // Normal Form İşlemleri
   const handleDeleteProduct = async (id: number) => {
     if (!confirm("Kalıcı olarak silmek istediğinize emin misiniz?")) return;
     try {
-      const res = await fetch('/api/products', { method: 'DELETE', body: JSON.stringify({ id }) });
+      const res = await fetch('/api/products', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       if ((await res.json()).success) {
         setProducts(products.filter(p => p.id !== id));
         setIsModalOpen(false);
@@ -180,31 +192,43 @@ function UrunlerPage() {
     } catch (err) {}
   };
 
+  // 🛠️ DEĞİŞEN KISIM: Canlı sunucu uyumluluğu için JSON tabanlı istek gönderme yapısı
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formDataToSend = new FormData();
-    formDataToSend.append('name', formData.name);
-    formDataToSend.append('price', formData.price);
-    formDataToSend.append('old_price', formData.old_price); 
-    formDataToSend.append('image_url', formData.image_url);
-    formDataToSend.append('category', formData.category || categories[0]);
-    formDataToSend.append('unit', formData.unit || 'kg');
-    if (selectedFile) formDataToSend.append('file', selectedFile);
-    if (editingProduct) formDataToSend.append('id', editingProduct.id.toString());
+
+    const requestPayload: any = {
+      name: formData.name,
+      price: formData.price,
+      old_price: formData.old_price,
+      image_url: formData.image_url, // Base64 veya normal link artık tamamen burada
+      category: formData.category || categories[0],
+      unit: formData.unit || 'kg'
+    };
+
+    if (editingProduct) {
+      requestPayload.id = editingProduct.id.toString();
+    }
 
     try {
       const res = await fetch('/api/products', {
         method: editingProduct ? 'PUT' : 'POST',
-        body: formDataToSend
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload) // Canlı sunucuda asla takılmayan temiz JSON yapısı
       });
+      
       const data = await res.json();
       if (data.success) {
         if (editingProduct) setProducts(products.map(p => p.id === editingProduct.id ? data.product : p));
         else setProducts([data.product, ...products]);
         setIsModalOpen(false);
         setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg' });
+      } else {
+        alert(`Hata: ${data.error || 'Ürün kaydedilemedi.'}`);
       }
-    } catch (err) {}
+    } catch (err) {
+      console.error("Form gönderme hatası:", err);
+      alert("Canlı sunucu bağlantısında hata oluştu.");
+    }
   };
 
   const openModal = (product: Product | null = null) => {
@@ -218,16 +242,11 @@ function UrunlerPage() {
       setEditingProduct(null);
       setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg' });
     }
-    setSelectedFile(null);
     setIsModalOpen(true);
   };
 
-  // ✅ DEĞİŞEN KISIM: Hem Kategori Seçimini hem de Navbar'dan gelen harfleri (Live Search) aynı anda süzen filtre
   const filteredProducts = products.filter((product) => {
-    // 1. Kategori Şartı
     const matchesCategory = selectedCategory === 'HEPSİ' || product.category?.toUpperCase() === selectedCategory.toUpperCase();
-    
-    // 2. Canlı Arama Şartı
     const matchesSearch = searchQuery
       ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
       : true;
@@ -235,7 +254,6 @@ function UrunlerPage() {
     return matchesCategory && matchesSearch;
   });
   
-
   return (
     <div className="min-h-screen bg-[#F5F0E6] py-16 px-4 md:px-8 font-sans relative">
       <div className="max-w-7xl mx-auto">
@@ -255,7 +273,6 @@ function UrunlerPage() {
 
         {/* ================= KAYDIRILABİLİR KATEGORİ PANELİ ================= */}
         <div className="w-full mb-12 border-b border-[#D4A373]/20 pb-4 relative group max-w-full">
-          {/* Sol Kaydırma Oku (Masaüstü) */}
           <button onClick={() => scrollCategory('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white border border-[#D4A373]/30 rounded-full shadow-md flex items-center justify-center text-[#5e0d0f] hover:bg-[#D4A373] hover:text-white transition-all md:opacity-0 group-hover:opacity-100 -ml-4 hidden md:flex font-bold">
             &lt;
           </button>
@@ -283,13 +300,12 @@ function UrunlerPage() {
             ))}
           </div>
 
-          {/* Sağ Kaydırma Oku (Masaüstü) */}
           <button onClick={() => scrollCategory('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white border border-[#D4A373]/30 rounded-full shadow-md flex items-center justify-center text-[#5e0d0f] hover:bg-[#D4A373] hover:text-white transition-all md:opacity-0 group-hover:opacity-100 -mr-4 hidden md:flex font-bold">
             &gt;
           </button>
         </div>
 
-        {/* ================= ÜRÜN IZGARASI (DRAG & DROP EKLENDİ) ================= */}
+        {/* ================= ÜRÜN IZGARASI ================= */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
             <div className="text-5xl mb-4">🛒</div>
@@ -416,7 +432,7 @@ function UrunlerPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Ürün Adı</label>
-                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] outline-none" />
+                  <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] transition-all outline-none" />
                 </div>
                 <div className="col-span-2">
                   <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Kategori</label>
@@ -440,9 +456,31 @@ function UrunlerPage() {
                 </div>
               </div>
 
+              {/* 🛠️ GÜNCELLENEN DOSYA YÜKLEME ALANI */}
               <div className="col-span-2 bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300">
-                <input type="file" accept="image/*" onChange={(e) => { if(e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]); }} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#D4A373]/20 file:text-[#5e0d0f] hover:file:bg-[#D4A373]/30 transition-all cursor-pointer mb-3" />
-                <input type="text" value={formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none" placeholder="Veya Resim URL Girin (https://...)" />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#D4A373]/20 file:text-[#5e0d0f] hover:file:bg-[#D4A373]/30 transition-all cursor-pointer mb-3" 
+                />
+                <input 
+                  type="text" 
+                  value={formData.image_url.startsWith('data:') ? 'Görsel Başarıyla Yüklendi (Base64 Mode)' : formData.image_url} 
+                  onChange={e => setFormData({...formData, image_url: e.target.value})} 
+                  disabled={formData.image_url.startsWith('data:')}
+                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none disabled:bg-gray-100 disabled:text-green-600 disabled:font-bold" 
+                  placeholder="Veya Resim URL Girin (https://...)" 
+                />
+                {formData.image_url.startsWith('data:') && (
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData({...formData, image_url: ''})} 
+                    className="text-[10px] text-red-500 hover:underline mt-1 block pl-1"
+                  >
+                    Resmi Kaldır / Yeniden Seç
+                  </button>
+                )}
               </div>
 
               <div className="pt-2 flex flex-col gap-2">
@@ -462,6 +500,7 @@ function UrunlerPage() {
     </div>
   );
 }
+
 export default function UrunlerPageWithSuspense() {
   return (
     <Suspense fallback={

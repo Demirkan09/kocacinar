@@ -18,9 +18,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      {/* 1. ADIM: body'e tam ekran esneklik (flex) veriyoruz */}
+      <body className={`${inter.className} min-h-screen flex flex-col antialiased`}>
+        {/* 2. ADIM: Footer'ı Providers içine alıyoruz ki içerideki state'lere erişebilsin */}
         <Providers>
-          {children}
+          
+          {/* 3. ADIM: children'ı flex-grow ile sarıyoruz ki sayfa boş bile olsa Footer'ı aşağı itsin */}
+          <main className="flex-grow">
+            {children}
+          </main>
+          
+          <Footer />
         </Providers>
       </body>
     </html>

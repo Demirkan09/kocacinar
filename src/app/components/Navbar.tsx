@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import {
   HiOutlineMagnifyingGlass,
@@ -18,13 +18,22 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  
+  // 🛠️ HYDRATION HATASINI ENGELLEYECEK KONTROL STATE'İ
+  const [mounted, setMounted] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
+
+  // Sayfa tarayıcıya tamamen indikten sonra mounted değerini true yapıyoruz
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const val = e.target.value;
+    const val = e.target.value;
     setSearchQuery(val); // Kutudaki yazıyı anında günceller
 
     if (val.trim()) {
@@ -37,6 +46,7 @@ export default function Navbar() {
       }
     }
   };
+
   // Kullanıcı Oturum Kontrolü
   useEffect(() => {
     const token = document.cookie
@@ -105,9 +115,13 @@ export default function Navbar() {
             {/* MOBİL SEPET SAYACI */}
             <a href="/sepet" className="relative hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
               <HiOutlineShoppingBag size={22} />
-              <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-                {cartCount}
-              </span>
+              
+              {/* 🛠️ GÜNCELLEME: Sadece sayfa tamamen client tarafında yüklendiyse sayıyı basıyoruz */}
+              {mounted && cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm animate-in scale-in duration-200">
+                  {cartCount}
+                </span>
+              )}
             </a>
           </div>
         </div>
@@ -115,22 +129,33 @@ export default function Navbar() {
         {/* ================= DESKTOP NAVBAR ================= */}
         <div className="hidden md:flex justify-between items-center h-20">
           
-          {/* LOGO */}
-          <a href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 bg-[#D4A373] rounded-full flex items-center justify-center text-2xl shadow-lg transform group-hover:scale-105 transition-transform">
-              🌳
+{/* LOGO */}
+          <a href="/" className="flex items-center gap-3 md:gap-4 group">
+            
+            {/* Next.js uyarısını kaldıran tam optimize logo alanı */}
+            <div className="relative transform group-hover:scale-105 transition-transform flex items-center">
+              <Image 
+                src="/kocacinarlogo.png" 
+                alt="Koca Çınar Logo" 
+                width={110} 
+                height={110} 
+                priority // Tarayıcıya "ilk bunu yükle" talimatı veriyor (LCP Çözümü)
+                className="object-contain drop-shadow-lg w-[70px] md:w-[110px]"
+                style={{ width: 'auto', height: 'auto' }} // En-boy oranı hatasını tamamen çözer
+              />
             </div>
+            
             <div className="flex flex-col">
-              <span className="font-extrabold text-2xl tracking-wide text-white group-hover:text-[#D4A373] transition-colors">
+              <span className="font-extrabold text-2xl md:text-3xl tracking-wide text-white group-hover:text-[#D4A373] transition-colors">
                 KOCA ÇINAR
               </span>
-              <span className="text-xs font-semibold tracking-widest text-[#D4A373] uppercase">
+              <span className="text-[11px] md:text-xs font-bold tracking-widest text-[#D4A373] uppercase mt-0.5">
                 Şarküteri
               </span>
             </div>
           </a>
 
-          {/* ORTA: Menü Linkleri (Modern Alt Çizgi Efekti) */}
+          {/* ORTA: Menü Linkleri */}
           <div className="hidden lg:flex gap-8 text-sm font-medium">
             {[
               { name: 'Anasayfa', path: '/' },
@@ -166,12 +191,16 @@ export default function Navbar() {
                 <HiOutlineUser size={22} />
               </a>
 
-              {/* MASAÜSTÜ SEPET SAYACI (Hata Buradaydı, Düzeltildi kanka!) */}
+              {/* MASAÜSTÜ SEPET SAYACI */}
               <a href="/sepet" className="relative hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
                 <HiOutlineShoppingBag size={22} />
-                <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
-                  {cartCount}
-                </span>
+                
+                {/* 🛠️ GÜNCELLEME: Sunucu tarafında 0 çıkıp tarayıcıda sayı fırlayarak uyuşmazlık yaratmasın diye mounted kontrolü ekledik */}
+                {mounted && cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm animate-in scale-in duration-200">
+                    {cartCount}
+                  </span>
+                )}
               </a>
             </div>
 
@@ -187,14 +216,14 @@ export default function Navbar() {
           </div>
         </div>
 
-{/* ================= CANLI ARAMA KUTUSU ================= */}
+        {/* ================= CANLI ARAMA KUTUSU ================= */}
         {isSearchOpen && (
           <div className="pb-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
             <form onSubmit={(e) => e.preventDefault()} className="relative max-w-3xl mx-auto">
               <input
                 type="text"
                 value={searchQuery}
-                onChange={handleSearchChange} // 👈 SİHİR BURADA: Her harfte çalışır
+                onChange={handleSearchChange}
                 placeholder="İstediğiniz ürünü arayın..."
                 className="w-full bg-white/10 border border-white/20 text-white placeholder-white/60 px-5 py-3 rounded-xl outline-none focus:bg-white/20 focus:border-[#D4A373] transition-all shadow-inner"
                 autoFocus

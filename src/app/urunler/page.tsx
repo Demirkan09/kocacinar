@@ -135,20 +135,27 @@ function UrunlerPage() {
   const handleDrop = async (dropIndex: number) => {
     if (draggedIndex === null || draggedIndex === dropIndex) return;
 
-    // Filtreli veya filtresiz dizideki nesneyi asıl state içinde buluyoruz
+    // 1. Sürüklenen ve hedef olan ürünleri filtrelenmiş listeden nokta atışı buluyoruz
     const draggedProduct = filteredProducts[draggedIndex];
     const targetProduct = filteredProducts[dropIndex];
+
+    if (!draggedProduct || !targetProduct) return;
+
+    // 2. Bu ürünlerin asıl ana listedeki (products) gerçek indekslerini buluyoruz
     const mainDraggedIdx = products.findIndex(p => p.id === draggedProduct.id);
     const mainTargetIdx = products.findIndex(p => p.id === targetProduct.id);
 
+    if (mainDraggedIdx === -1 || mainTargetIdx === -1) return;
+
+    // 3. Ana listeyi klonlayıp yer değiştirme işlemini yapıyoruz
     const newProducts = [...products];
     newProducts.splice(mainDraggedIdx, 1);
     newProducts.splice(mainTargetIdx, 0, draggedProduct);
 
-    setProducts(newProducts); // Anlık UI Güncellemesi
+    setProducts(newProducts); // UI anında güncellenir
     setDraggedIndex(null);
 
-    // Veritabanına yeni sıralamayı yolluyoruz
+    // 4. Veritabanına yeni sıralamayı tertemiz gönderiyoruz
     const reorderData = newProducts.map((p, i) => ({ id: p.id, sort_order: i }));
     try {
       await fetch('/api/products', {
@@ -156,7 +163,9 @@ function UrunlerPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reorder', items: reorderData })
       });
-    } catch (err) { console.error("Sıralama kaydedilemedi", err); }
+    } catch (err) { 
+      console.error("Sıralama kaydedilemedi", err); 
+    }
   };
 
   // Normal Form İşlemleri

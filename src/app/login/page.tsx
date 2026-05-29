@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineArrowRight } from 'react-icons/hi2';
@@ -47,13 +47,15 @@ export default function LoginPage() {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#5e0d0f]/5 rounded-full translate-x-1/3 translate-y-1/3 blur-3xl"></div>
 
       <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] max-w-md w-full border border-white relative z-10">
-        {/* Logo Bölümü */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-[#5e0d0f] rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-[#5e0d0f]/20 mx-auto mb-4">
-            🌳
-          </div>
-          <h2 className="text-3xl font-extrabold text-[#3C2F2F] tracking-tight">Tekrar Hoş Geldiniz</h2>
-          <p className="text-gray-500 text-sm mt-2 font-medium">Koca Çınar Şarküteri Lezzet Dünyası</p>
+{/* Logo Bölümü */}
+        <div className="flex flex-col items-center text-center mb-8">          
+          <h2 className="text-3xl font-black text-[#5e0d0f] tracking-tight">
+            Tekrar Hoş Geldiniz <br></br>
+          </h2>
+          <p className="text-[#3C2F2F]/70 text-sm mt-2 font-semibold uppercase tracking-wider">
+            Koca Çınar Şarküteri Lezzet Dünyası
+          </p>
+          <div className="w-12 h-0.5 bg-[#D4A373] mt-3 rounded-full"></div>
         </div>
 
         {/* Bildirim Mesajları */}

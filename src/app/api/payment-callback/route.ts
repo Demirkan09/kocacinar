@@ -6,17 +6,12 @@ export async function POST(request: Request) {
     // Iyzico callback isteğini x-www-form-urlencoded olarak atar
     const formData = await request.formData();
     const token = formData.get('token');
-    const status = formData.get('status'); // success veya failure döner
-
+    console.log("Gelen Veriler -> Token:", token);
     if (!token) {
+      console.log("HATA: Iyzico'dan token gelmedi!");
       return NextResponse.json({ error: 'Token bulunamadı' }, { status: 400 });
     }
-
-    // Ödeme başarısızsa direkt başarısız sayfasına yönlendir
-    if (status !== 'success') {
-      return NextResponse.redirect(new URL('/odeme-basarisiz?reason=iyzico_rejected', request.url), 303);
-    }
-
+      console.log("Iyzico Config Kontrolü");
     // Iyzipay ayarlarını başlat
     const iyzipay = new Iyzipay({
       apiKey: process.env.IYZICO_API_KEY!,
@@ -38,7 +33,7 @@ export async function POST(request: Request) {
     };
 
     const iyzicoResult: any = await checkPaymentStatus();
-
+    console.log("=== CALLBACK DOĞRULAMA CEVABI ===", iyzicoResult);
     if (iyzicoResult.status === 'success' && iyzicoResult.paymentStatus === 'SUCCESS') {
       
       // === BURASI SİPARİŞİ ONAYLAMA ALANI ===
@@ -52,6 +47,7 @@ export async function POST(request: Request) {
       // Kullanıcının tarayıcısında bu sayfa açılacak
       return NextResponse.redirect(new URL(`/odeme-basarili?token=${token}`, request.url), 303);
     } else {
+      console.log("Doğrulama başarısız! Iyzico hata mesajı:", iyzicoResult.errorMessage);
       // Ödeme doğrulaması başarısızsa
       return NextResponse.redirect(new URL('/odeme-basarisiz?reason=verification_failed', request.url), 303);
     }

@@ -1,5 +1,5 @@
 'use client';
-
+import Image from 'next/image';
 import { useState } from 'react';
 import { HiOutlineUser, HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 
@@ -46,17 +46,19 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] flex items-center justify-center p-4 md:p-6 font-sans relative overflow-hidden">
-      {/* Dekoratif Objeler */}
-      <div className="absolute top-10 right-0 w-72 h-72 bg-[#D4A373]/10 rounded-full translate-x-1/2 blur-3xl"></div>
-      <div className="absolute bottom-10 left-0 w-72 h-72 bg-[#5e0d0f]/5 rounded-full -translate-x-1/2 blur-3xl"></div>
-
-      <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] max-w-lg w-full border border-white relative z-10">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#5e0d0f] to-[#8a1c1f] rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-[#5e0d0f]/20 mx-auto mb-4">
-            🌳
-          </div>
-          <h2 className="text-3xl font-extrabold text-[#3C2F2F] tracking-tight">Ailemize Katılın</h2>
-          <p className="text-gray-500 text-sm mt-2 font-medium">En taze lezzetler için hemen üye olun.</p>
+      
+      {/* KAYIT FORMU KONTEYNERI */}
+      <div className="bg-white/80 backdrop-blur-xl p-8 md:p-12 rounded-[3rem] shadow-2xl border border-white w-full max-w-xl relative z-10 transition-all">
+        
+        {/* ================= Logo ve Başlık Bölümü (GÜNCELLENDİ) ================= */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <h2 className="text-3xl font-black text-[#5e0d0f] tracking-tight">
+            Ailemize Katılın
+          </h2>
+          <p className="text-[#3C2F2F]/70 text-sm mt-2 font-semibold uppercase tracking-wider">
+            Doğal Lezzetlerin Kapısını Aralayın
+          </p>
+          <div className="w-12 h-0.5 bg-[#D4A373] mt-3 rounded-full"></div>
         </div>
 
         {message.text && (
@@ -187,7 +189,7 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            {/* Modal İçerik (Scroll edilebilir alan) */}
+            {/* Modal İçerik */}
             <div className="p-6 overflow-y-auto text-sm text-gray-600 space-y-4 leading-relaxed font-medium">
               <p className="font-bold text-[#3C2F2F]">Değerli Ziyaretçimiz,</p>
               <p>

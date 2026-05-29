@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const [activeTab, setActiveTab] = useState('kisisel');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,16 @@ export default function ProfilePage() {
   const [addrDetail, setAddrDetail] = useState('');
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL'den gelen e-posta doğrulama parametresini yakalama
+  useEffect(() => {
+    const verified = searchParams.get('verified');
+    if (verified === 'true') {
+      setToastMessage('E-posta adresiniz başarıyla doğrulandı! ✅');
+      setShowToast(true);
+    }
+  }, [searchParams]);
 
   // Kullanıcı verisini çekme
   useEffect(() => {
@@ -46,7 +56,7 @@ export default function ProfilePage() {
           setLastName(data.user.last_name || data.user.lastname || data.user.lastName || '');
           setPhone(data.user.phone || ''); 
 
-          // ✅ Veritabanından gelen adresi JSON olarak ayrıştır ve listeye koy
+          // Veritabanından gelen adresi JSON olarak ayrıştır ve listeye koy
           if (data.user.address) {
             try {
               const parsedAddresses = typeof data.user.address === 'string' ? JSON.parse(data.user.address) : data.user.address;
@@ -76,7 +86,6 @@ export default function ProfilePage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        // Adres verisinin ezilmemesi için adresleri de gönderiyoruz
         body: JSON.stringify({ firstName, lastName, phone, address: JSON.stringify(addresses) }),
       });
 
@@ -107,7 +116,7 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ YENİ: Adres Kaydetme Fonksiyonu
+  // Adres Kaydetme Fonksiyonu
   const handleSaveAddress = async () => {
     if (!addrTitle || !addrCity || !addrDistrict || !addrDetail) {
       setToastMessage('Lütfen tüm adres alanlarını doldurun ⚠️');
@@ -116,7 +125,7 @@ export default function ProfilePage() {
     }
 
     const newAddress = {
-      id: Date.now().toString(), // Adresleri silerken ayırt etmek için benzersiz ID
+      id: Date.now().toString(),
       title: addrTitle,
       city: addrCity,
       district: addrDistrict,
@@ -126,7 +135,6 @@ export default function ProfilePage() {
     const updatedAddresses = [...addresses, newAddress];
 
     try {
-      // API'ye adresi güncellenmiş JSON listesi olarak postalıyoruz
       const res = await fetch('/api/auth/update-profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -139,7 +147,6 @@ export default function ProfilePage() {
       if (res.ok && data.success) {
         setAddresses(updatedAddresses);
         setIsAddingAddress(false);
-        // Formu temizle
         setAddrTitle(''); setAddrCity(''); setAddrDistrict(''); setAddrDetail('');
         
         setToastMessage('Yeni adres başarıyla eklendi ✅');
@@ -154,7 +161,7 @@ export default function ProfilePage() {
     }
   };
 
-  // ✅ YENİ: Adres Silme Fonksiyonu
+  // Adres Silme Fonksiyonu
   const handleDeleteAddress = async (id: string) => {
     if (!confirm("Bu adresi silmek istediğinize emin misiniz?")) return;
 
@@ -317,7 +324,6 @@ export default function ProfilePage() {
               </div>
 
               {isAddingAddress ? (
-                // ✅ ADRES EKLEME FORMU
                 <div className="bg-[#FBF9F4] p-6 md:p-8 rounded-3xl border border-[#D4A373]/30">
                   <h4 className="font-bold text-lg text-[#3C2F2F] mb-6">Yeni Adres Ekle</h4>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -359,7 +365,6 @@ export default function ProfilePage() {
                       </button>
                     </div>
                   ) : (
-                    // ✅ KAYITLI ADRESLER LİSTESİ
                     <div className="grid gap-4">
                       {addresses.map((adr) => (
                         <div key={adr.id} className="bg-[#FBF9F4] p-5 rounded-2xl border border-[#D4A373]/20 flex justify-between items-start group hover:border-[#D4A373] transition-all">
@@ -421,5 +426,21 @@ export default function ProfilePage() {
       )}
 
     </div>
+  );
+}
+
+// Next.js App Router standartları gereği useSearchParams() kullanımı Suspense sarmalayıcısı gerektirir build hatasını önlemek için
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F0E6] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5e0d0f] mx-auto mb-4"></div>
+          <p className="text-[#3C2F2F] font-bold tracking-widest uppercase text-xs">Yükleniyor...</p>
+        </div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }

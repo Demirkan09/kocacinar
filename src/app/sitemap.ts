@@ -1,7 +1,10 @@
 import { MetadataRoute } from 'next';
 
+// 🚀 Next.js'e bu rotanın statikleştirilmemesini, her istek geldiğinde canlı çalışmasını söylüyoruz
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://www.kocacinarciftlik.com'; // Kendi tam canlı domainini yaz kanka
+  const baseUrl = 'https://www.kocacinarciftlik.com'; // Kendi canlı domainin
 
   // Sabit Kurumsal Sayfalar
   const routes = [
@@ -19,14 +22,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Veritabanındaki ürünleri dinamik çekip sitemap'e besliyoruz
   let productRoutes: any[] = [];
   try {
-    // Kendi iç API'mizden veya direkt DB query'den ürünleri çekiyoruz
-    const res = await fetch(`${baseUrl}/api/products`, { cache: 'no-store' });
+    // 🛠️ next: { revalidate: 0 } ekleyerek çakışmayı Next.js standartlarında çözüyoruz
+    const res = await fetch(`${baseUrl}/api/products`, { 
+      next: { revalidate: 0 } 
+    });
+    
     if (res.ok) {
       const data = await res.json();
       const products = Array.isArray(data) ? data : data.rows || data.products || [];
       
       productRoutes = products.map((product: any) => ({
-        url: `${baseUrl}/urunler?id=${product.id}`, // Ürün detay link yapın nasılsa ona göre esnetebilirsin
+        url: `${baseUrl}/urunler?id=${product.id}`,
         lastModified: new Date().toISOString(),
         changeFrequency: 'weekly' as const,
         priority: 0.6,

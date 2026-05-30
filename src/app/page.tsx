@@ -3,7 +3,29 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { HiOutlineSparkles, HiOutlineTruck, HiOutlineShieldCheck, HiOutlineArrowRight, HiOutlineChatBubbleLeftRight, HiTrash, HiOutlineAdjustmentsHorizontal } from "react-icons/hi2";
+// src/app/page.tsx klasörünün üst kısımlarına ekle (Bileşenin dışına)
+import { Metadata } from 'next';
 
+export const metadata: Metadata = {
+  title: 'Koca Çınar Şarküteri | Aydın Yöresel & Doğal Gurme Lezzetler',
+  description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve yerli şarküteri ürünleri. Özel tulum peyniri, eski kaşar, taş baskı zeytinyağı ve gurme lezzetler soğuk zincirle kapınızda.',
+  keywords: ['aydın şarküteri', 'doğal peynir siparişi', 'yöresel ürünler kapıda ödeme', 'koca çınar çiftliği', 'katkısız zeytinyağı', 'gurme şarküteri'],
+  openGraph: {
+    title: 'Koca Çınar Şarküteri | Gelenekten Geleceğe Doğal Lezzet',
+    description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve birinci kalite gurme şarküteri ürünleri.',
+    url: 'https://www.kocacinarciftlik.com',
+    siteName: 'Koca Çınar Şarküteri',
+    images: [
+      {
+        url: 'https://www.kocacinarciftlik.com/kocacinarlogo.png', // Google'da paylaşıldığında çıkacak görsel
+        width: 800,
+        height: 600,
+      },
+    ],
+    locale: 'tr_TR',
+    type: 'website',
+  },
+};
 const heroImages = [
   '/arkaplan/hero1.jpg',
   '/arkaplan/hero2.jpg',
@@ -348,7 +370,7 @@ export default function Anasayfa() {
           <div className="text-center md:text-left">
             <span className="text-xs font-bold text-[#D4A373] tracking-widest uppercase block mb-1">Haftanın Seçkisi</span>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#5e0d0f]">Öne Çıkan Ürünlerimiz</h2>
-            {isAdmin && <p className="text-amber-600 text-xs font-bold mt-1">💡 Yönetici Modu: Kartları sürükleyip bırakarak ana sayfa vitrin sırasını canlı değiştirebilirsiniz (Yenileme Gerekmez!).</p>}
+            {isAdmin && <p className="text-amber-600 text-xs font-bold mt-1">💡 Yönetici Modu: Kartları sürükleyip bırakarak ana sayfa vitrin sırasını canlı değiştirebilirsiniz </p>}
             <div className="w-12 h-1 bg-[#D4A373] mt-3 rounded-full mx-auto md:mx-0"></div>
           </div>
           <a href="/urunler" className="text-sm font-bold text-[#5e0d0f] bg-white border border-[#5e0d0f]/20 px-6 py-3 rounded-xl hover:bg-[#5e0d0f] hover:text-white transition-all flex items-center gap-2 group shadow-sm">Tüm Mağazayı Gör <HiOutlineArrowRight className="group-hover:translate-x-1 transition-transform" /></a>

@@ -407,7 +407,7 @@ export default function AnasayfaIcerik() {
           <h2 className="text-3xl md:text-4xl font-extrabold text-[#5e0d0f] flex items-center justify-center gap-2"><HiOutlineChatBubbleLeftRight size={32} className="text-[#D4A373]" /> Gurmelerimiz Ne Diyor?</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[{ name: 'Ahmet Yılmaz', text: '"Eski kaşar ve süzme süzme yoğurt aldım, köy lezzeti."', init: 'A.Y' }, { name: 'Zeynep Kaya', text: '"Tereyağ kesinlikle doğal, tekrar sipariş edeceğim."', init: 'Z.K' }, { name: 'Mehmet Aslan', text: '"Yeşil kırma zeytin tam bir efsane. Katkısız olduğu belli."', init: 'M.A' }].map((u, i) => (
+          {[{ name: 'Ahmet Yılmaz', text: '"Tulum ve beyaz peynir aldım, köy lezzeti."', init: 'A.Y' }, { name: 'Zeynep Kaya', text: '"Tereyağ kesinlikle doğal, tekrar sipariş edeceğim."', init: 'Z.K' }, { name: 'Mehmet Aslan', text: '"Yeşil kırma zeytin tam bir efsane."', init: 'M.A' }].map((u, i) => (
             <div key={i} className="bg-white p-6 md:p-8 rounded-3xl border border-[#D4A373]/10 shadow-sm">
               <div className="flex text-amber-400 text-lg mb-4">★★★★★</div>
               <p className="text-gray-600 text-sm italic font-medium leading-relaxed">{u.text}</p>

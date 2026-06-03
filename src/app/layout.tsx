@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Koca Çınar Şarküteri',
-  description: 'Taze ve Doğal Lezzetler',
+  description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve yerli şarküteri ürünleri. Kahvaltıların vazgeçilmezleri gurme lezzetler soğuk zincirle kapınızda.',
 };
 
 export default function RootLayout({

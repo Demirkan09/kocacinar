@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import AnasayfaIcerik from './AnasayfaIcerik';
 
-// 🚀 Google Arama Motoru (SEO) ve WhatsApp Paylaşım Ayarları Tamamen Buradan Yönetiliyor
+// 🚀 Google Arama Motoru (SEO) ve Favicon Ayarları
 export const metadata: Metadata = {
   title: 'Koca Çınar Şarküteri | Aydın Yöresel & Doğal Gurme Lezzetler',
   description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve yerli şarküteri ürünleri. Kahvaltıların vazgeçilmezleri gurme lezzetler soğuk zincirle kapınızda.',
@@ -9,22 +9,21 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },           // Ana favicon
-      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon.ico?v=2', sizes: 'any' },
+      { url: '/favicon-96x96.png?v=2', sizes: '96x96', type: 'image/png' },
+      { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
     ],
-    shortcut: '/favicon.ico',
-    apple: '/apple-touch-icon.png',                     // iOS ve Apple cihazlar için
-    other: [
-      {
-        rel: 'apple-touch-icon',
-        url: '/apple-touch-icon.png',
-      },
-      {
-        rel: 'manifest',
-        url: '/site.webmanifest',
-      },
+    shortcut: '/favicon.ico?v=2',
+    apple: [
+      { url: '/apple-touch-icon.png?v=2', sizes: '180x180' },
     ],
   },
+
+  other: {
+    'apple-mobile-web-app-title': 'Koca Çınar',
+  },
+
+  manifest: '/site.webmanifest?v=2',
 
   openGraph: {
     title: 'Koca Çınar Şarküteri | Gelenekten Geleceğe Doğal Lezzet',

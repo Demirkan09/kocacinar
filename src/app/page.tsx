@@ -6,6 +6,26 @@ export const metadata: Metadata = {
   title: 'Koca Çınar Şarküteri | Aydın Yöresel & Doğal Gurme Lezzetler',
   description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve yerli şarküteri ürünleri. Kahvaltıların vazgeçilmezleri gurme lezzetler soğuk zincirle kapınızda.',
   keywords: ['aydın şarküteri', 'doğal peynir siparişi', 'yöresel ürünler kapıda ödeme', 'koca çınar çiftliği', 'katkısız zeytinyağı', 'gurme şarküteri', 'koca çınar şarküteri'],
+
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },           // Ana favicon
+      { url: '/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',                     // iOS ve Apple cihazlar için
+    other: [
+      {
+        rel: 'apple-touch-icon',
+        url: '/apple-touch-icon.png',
+      },
+      {
+        rel: 'manifest',
+        url: '/site.webmanifest',
+      },
+    ],
+  },
+
   openGraph: {
     title: 'Koca Çınar Şarküteri | Gelenekten Geleceğe Doğal Lezzet',
     description: 'Aydın Efeler’den sofralarınıza taze, katkısız ve birinci kalite gurme şarküteri ürünleri.',
@@ -25,6 +45,5 @@ export const metadata: Metadata = {
 };
 
 export default function Anasayfa() {
-  // İstemci tarafında çalışacak tüm state, sürükle-bırak ve modal logic'lerini barındıran bileşeni çağırıyoruz
   return <AnasayfaIcerik />;
 }

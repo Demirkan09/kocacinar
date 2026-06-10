@@ -2,8 +2,9 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { HiOutlineUser, HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
-
+import { useRouter } from 'next/navigation';
 export default function RegisterPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,32 +18,39 @@ export default function RegisterPage() {
   // Aydınlatma Metni Penceresi (Modal) için State
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setMessage({ type: '', text: '' });
 
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        setMessage({ type: 'error', text: data.error || 'Bir şeyler ters gitti.' });
-      } else {
-        setMessage({ type: 'success', text: 'Tebrikler, Koca Çınar Şarküteri ailesine katıldınız!' });
-        setFormData({ firstName: '', lastName: '', email: '', password: '', commercialMarketingApproved: false });
-      }
-    } catch (err) {
-      setMessage({ type: 'error', text: 'Bağlantı hatası oluştu.' });
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      setMessage({ type: 'error', text: data.error || 'Bir şeyler ters gitti.' });
+    } else {
+      setMessage({ type: 'success', text: 'Tebrikler, Koca Çınar Şarküteri ailesine katıldınız!' });
+      
+      // Formu temizle
+      setFormData({ firstName: '', lastName: '', email: '', password: '', commercialMarketingApproved: false });
+
+      // ✅ 1.5 saniye sonra /urunler sayfasına yönlendir
+      setTimeout(() => {
+        router.push('/urunler');
+      }, 1500);
     }
-  };
+  } catch (err) {
+    setMessage({ type: 'error', text: 'Bağlantı hatası oluştu.' });
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#F5F0E6] flex items-center justify-center p-4 md:p-6 font-sans relative overflow-hidden">

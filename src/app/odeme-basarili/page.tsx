@@ -3,10 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useCart } from "@/app/components/cart"; // Sepet hook'unu içe aktarıyoruz
 
 export default function OdemeBasarili() {
   const router = useRouter();
   const [countdown, setCountdown] = useState(10);
+  const { clearCart } = useCart(); // Sepeti temizleme fonksiyonunu alıyoruz
+
+  // Sayfa yüklendiğinde sepeti temizle
+  useEffect(() => {
+    clearCart();
+  }, [clearCart]);
 
   useEffect(() => {
     // Sayaç 0 olduğunda yönlendirme yap

@@ -10,54 +10,43 @@ import {
 } from 'react-icons/hi2';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-// Projendeki global sepet verisini dinlemek için doğru context yolunu bağlıyoruz
 import { useCart } from '@/app/components/cart';
 
 export default function Navbar() {
-  const { cartCount } = useCart(); // Global sepet sayısını çektik kanka
+  const { cartCount } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  
-  // 🛠️ HYDRATION HATASINI ENGELLEYECEK KONTROL STATE'İ
+ 
   const [mounted, setMounted] = useState(false);
-
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
 
-  // Sayfa tarayıcıya tamamen indikten sonra mounted değerini true yapıyoruz
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setSearchQuery(val); // Kutudaki yazıyı anında günceller
-
+    setSearchQuery(val);
     if (val.trim()) {
-      // Harf girildikçe URL'yi anında günceller (Sayfa yenilenmez, arkada tıkır tıkır çalışır)
       router.replace(`/urunler?q=${encodeURIComponent(val)}`);
     } else {
-      // Müşteri kutuyu tamamen silerse ve zaten ürünler sayfasındaysa filtreyi temizler
       if (pathname === '/urunler') {
         router.replace('/urunler');
       }
     }
   };
 
-  // Kullanıcı Oturum Kontrolü
   useEffect(() => {
     const token = document.cookie
       .split('; ')
       .find((row) => row.startsWith('auth-token='));
-
     if (token) {
       try {
-        const userData = JSON.parse(
-          atob(token.split('=')[1].split('.')[1])
-        );
+        const userData = JSON.parse(atob(token.split('=')[1].split('.')[1]));
         setUser(userData);
       } catch {}
     }
@@ -70,16 +59,15 @@ export default function Navbar() {
     router.refresh();
   };
 
-  // Aktif link kontrolü için yardımcı fonksiyon
   const isActive = (path: string) => pathname === path;
 
   return (
     <nav className="bg-[#5e0d0f]/95 backdrop-blur-md text-white sticky top-0 z-50 shadow-xl border-b border-[#D4A373]/20 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
-        
-        {/* ================= MOBİL NAVBAR ================= */}
-        <div className="flex md:hidden items-center justify-between py-3">
-          
+       
+        {/* ================= MOBİL NAVBAR (LOGO DÜZELTİLMİŞ) ================= */}
+        <div className="flex md:hidden items-center justify-between py-4">   {/* py-3 → py-4 yaptık */}
+         
           {/* SOL: Hamburger Menü */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -89,14 +77,17 @@ export default function Navbar() {
             {isMenuOpen ? <HiOutlineXMark size={28} /> : <HiOutlineBars3 size={28} />}
           </button>
 
-          {/* ORTA: Logo */}
-          <a href="/" className="flex flex-col items-center justify-center absolute left-1/2 -translate-x-1/2">
-            <span className="font-extrabold text-xl tracking-widest text-white whitespace-nowrap">
-              KOCA ÇINAR
-            </span>
-            <span className="text-[10px] font-medium tracking-widest text-[#D4A373] uppercase mt-0.5">
-              Şarküteri
-            </span>
+          {/* ORTA: LOGO - BÜYÜTÜLDÜ ve Daha İyi Ortalandı */}
+          <a href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center">
+            <Image
+              src="/kocacinarlogo.png"
+              alt="Koca Çınar Şarküteri"
+              width={130}
+              height={130}
+              priority
+              className="object-contain drop-shadow-lg"
+              style={{ width: '110px', height: 'auto' }}
+            />
           </a>
 
           {/* SAĞ: İkonlar */}
@@ -107,16 +98,11 @@ export default function Navbar() {
             >
               <HiOutlineMagnifyingGlass size={22} />
             </button>
-
             <a href={user ? "/profil" : "/login"} className="p-1 hover:text-[#D4A373] transition-colors">
               <HiOutlineUser size={22} />
             </a>
-
-            {/* MOBİL SEPET SAYACI */}
             <a href="/sepet" className="relative hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
               <HiOutlineShoppingBag size={22} />
-              
-              {/* 🛠️ GÜNCELLEME: Sadece sayfa tamamen client tarafında yüklendiyse sayıyı basıyoruz */}
               {mounted && cartCount > 0 && (
                 <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm animate-in scale-in duration-200">
                   {cartCount}
@@ -125,26 +111,21 @@ export default function Navbar() {
             </a>
           </div>
         </div>
-
-        {/* ================= DESKTOP NAVBAR ================= */}
+        
+        {/* ================= DESKTOP NAVBAR (Değişmedi) ================= */}
         <div className="hidden md:flex justify-between items-center h-20">
-          
-{/* LOGO */}
           <a href="/" className="flex items-center gap-3 md:gap-4 group">
-            
-            {/* Next.js uyarısını kaldıran tam optimize logo alanı */}
             <div className="relative transform group-hover:scale-105 transition-transform flex items-center">
-              <Image 
-                src="/kocacinarlogo.png" 
-                alt="Koca Çınar Logo" 
-                width={110} 
-                height={110} 
-                priority // Tarayıcıya "ilk bunu yükle" talimatı veriyor (LCP Çözümü)
+              <Image
+                src="/kocacinarlogo.png"
+                alt="Koca Çınar Logo"
+                width={110}
+                height={110}
+                priority
                 className="object-contain drop-shadow-lg w-[70px] md:w-[110px]"
-                style={{ width: 'auto', height: 'auto' }} // En-boy oranı hatasını tamamen çözer
+                style={{ width: 'auto', height: 'auto' }}
               />
             </div>
-            
             <div className="flex flex-col">
               <span className="font-extrabold text-2xl md:text-3xl tracking-wide text-white group-hover:text-[#D4A373] transition-colors">
                 KOCA ÇINAR
@@ -155,7 +136,6 @@ export default function Navbar() {
             </div>
           </a>
 
-          {/* ORTA: Menü Linkleri */}
           <div className="hidden lg:flex gap-8 text-sm font-medium">
             {[
               { name: 'Anasayfa', path: '/' },
@@ -177,25 +157,16 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* SAĞ: İkonlar ve Buton */}
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-4 border-r border-white/20 pr-5">
-              <button
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="hover:text-[#D4A373] hover:scale-110 transition-all duration-200"
-              >
+              <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
                 <HiOutlineMagnifyingGlass size={22} />
               </button>
-
               <a href={user ? "/profil" : "/login"} className="hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
                 <HiOutlineUser size={22} />
               </a>
-
-              {/* MASAÜSTÜ SEPET SAYACI */}
               <a href="/sepet" className="relative hover:text-[#D4A373] hover:scale-110 transition-all duration-200">
                 <HiOutlineShoppingBag size={22} />
-                
-                {/* 🛠️ GÜNCELLEME: Sunucu tarafında 0 çıkıp tarayıcıda sayı fırlayarak uyuşmazlık yaratmasın diye mounted kontrolü ekledik */}
                 {mounted && cartCount > 0 && (
                   <span className="absolute -top-1.5 -right-2 bg-[#D4A373] text-[#5e0d0f] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm animate-in scale-in duration-200">
                     {cartCount}
@@ -203,13 +174,8 @@ export default function Navbar() {
                 )}
               </a>
             </div>
-
-            <a
-              href="https://wa.me/905513404848"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#20C25A] text-white px-5 py-2.5 rounded-full font-medium transition-all text-sm shadow-lg hover:shadow-[#25D366]/40 hover:-translate-y-0.5"
-            >
+            <a href="https://wa.me/905513404848" target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#20C25A] text-white px-5 py-2.5 rounded-full font-medium transition-all text-sm shadow-lg hover:shadow-[#25D366]/40 hover:-translate-y-0.5">
               <FaWhatsapp size={20} />
               <span>Sipariş Ver</span>
             </a>
@@ -235,10 +201,10 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* ================= MOBİL MENÜ ================= */}
+        {/* ================= YENİ MOBİL MENÜ (Premium & Naif) ================= */}
         {isMenuOpen && (
-          <div className="md:hidden animate-in fade-in slide-in-from-top-4 duration-300 pb-6 pt-4 border-t border-white/10">
-            <div className="flex flex-col gap-2 text-lg px-2">
+          <div className="md:hidden animate-in fade-in slide-in-from-top-4 duration-300 pb-8 pt-4 border-t border-white/10">
+            <div className="flex flex-col px-4 text-lg">
               {[
                 { name: 'Anasayfa', path: '/' },
                 { name: 'Hakkımızda', path: '/hakkimizda' },
@@ -249,26 +215,32 @@ export default function Navbar() {
                   key={link.path}
                   href={link.path}
                   onClick={() => setIsMenuOpen(false)}
-                  className={`px-4 py-3 rounded-xl transition-all ${
-                    isActive(link.path)
-                      ? 'bg-[#D4A373]/20 text-[#D4A373] font-bold border border-[#D4A373]/30'
-                      : 'text-gray-200 hover:bg-white/5'
-                  }`}
+                  className={`py-4 px-5 rounded-2xl transition-all duration-300 flex items-center group
+                    ${isActive(link.path)
+                      ? 'text-[#D4A373] font-semibold bg-white/5'
+                      : 'text-gray-200 hover:bg-white/5 hover:text-white'
+                    }`}
                 >
-                  {link.name}
+                  <span className="relative">
+                    {link.name}
+                    <span className={`absolute bottom-0 left-0 h-[2px] bg-[#D4A373] transition-all duration-300
+                      ${isActive(link.path) ? 'w-full' : 'w-0 group-hover:w-full'}`} 
+                    />
+                  </span>
                 </a>
               ))}
 
-              <div className="h-px bg-white/10 my-2 mx-4" />
+              <div className="h-px bg-white/10 my-4 mx-5" />
 
               <a
                 href="https://wa.me/905513404848"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20C25A] text-white mx-4 mt-2 px-5 py-3.5 rounded-xl font-bold transition-all shadow-lg"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20C25A] text-white mx-4 mt-2 px-6 py-4 rounded-2xl font-semibold transition-all shadow-lg text-base"
               >
-                <FaWhatsapp size={22} />
-                <span>WhatsApp ile Sipariş Ver</span>
+                <FaWhatsapp size={24} />
+                WhatsApp ile Sipariş Ver
               </a>
             </div>
           </div>

@@ -5,24 +5,31 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 // Hata sebeplerini Türkçeye çeviren yardımcı fonksiyon
-function getErrorMessage(reason: string | null) {
-  switch (reason) {
+function getErrorMessage(errorParam: string | null) {
+  if (!errorParam) return "Ödeme işlemi sırasında bilinmeyen bir hata meydana geldi.";
+
+  switch (errorParam) {
     case "iyzico_rejected":
+    case "Odeme_basarisiz":
       return "Banka veya iyzico altyapısı işlemi onaylamadı. Lütfen kart bilgilerinizi ve limitinizi kontrol edin.";
     case "verification_failed":
+    case "Token_bulunamadi":
       return "Ödeme doğrulama işlemi başarısız oldu. Güvenlik nedeniyle işlem iptal edildi.";
     case "server_error":
+    case "Sistem_Hatasi":
       return "Sunucu kaynaklı anlık bir problem oluştu. Lütfen birazdan tekrar deneyin.";
     default:
-      return "Ödeme işlemi sırasında bilinmeyen bir hata meydana geldi.";
+      // Eğer sistemden okunabilir, özel bir mesaj gönderilirse (boşlukları _ ile değiştirilmiş olabilir) onu çözüp gösteririz
+      return decodeURIComponent(errorParam).replace(/_/g, ' ');
   }
 }
 
 // URL paramlarını okuyan alt bileşen
 function OdemeBasarisizIcerik() {
   const searchParams = useSearchParams();
-  const reason = searchParams.get("reason");
-  const errorMessage = getErrorMessage(reason);
+  // Hem senin önceki "reason" yapını hem de route.ts'den gelen "error" yapısını yakalar
+  const errorParam = searchParams.get("error") || searchParams.get("reason");
+  const errorMessage = getErrorMessage(errorParam);
 
   return (
     <div className="bg-white p-8 md:p-12 rounded-2xl shadow-xl max-w-lg w-full text-center border-t-4 border-red-500">

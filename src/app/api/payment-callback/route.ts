@@ -3,12 +3,14 @@ import Iyzipay from 'iyzipay';
 import { query } from '@/lib/db';
 
 export async function POST(request: Request) {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com';
+
   try {
     const formData = await request.formData();
     const token = formData.get('token');
     
     if (!token) {
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Token_bulunamadi`, 303);
+      return htmlRedirect(`${baseUrl}/odeme-basarisiz?error=Token_bulunamadi`);
     }
     
     // Iyzipay ayarlarını başlat
@@ -40,18 +42,47 @@ export async function POST(request: Request) {
          await query("UPDATE orders SET status = 'HAZIRLANIYOR' WHERE order_no = $1", [iyzicoResult.basketId]);
       }
 
-      // Kullanıcıyı direkt kendi siparişlerini göreceği Profil sekmesine yolluyoruz.
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/profil?tab=siparis&success=true`, 303);
+      // Başarılı ödeme sayfasına güvenli HTML yönlendirmesi
+      return htmlRedirect(`${baseUrl}/odeme-basarili`);
     } else {
       
       // 2. ÖDEME İPTAL/BAŞARISIZ -> SİPARİŞİ IPTAL YAP
       if (iyzicoResult.basketId) {
          await query("UPDATE orders SET status = 'IPTAL' WHERE order_no = $1", [iyzicoResult.basketId]);
       }
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Odeme_basarisiz`, 303);
+      
+      // Başarısız ödeme sayfasına hata koduyla birlikte yönlendirme
+      return htmlRedirect(`${baseUrl}/odeme-basarisiz?error=Odeme_basarisiz`);
     }
 
   } catch (error: any) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com'}/sepet?error=Sistem_Hatasi`, 303);
+    console.error('Callback Hatası:', error);
+    return htmlRedirect(`${baseUrl}/odeme-basarisiz?error=Sistem_Hatasi`);
   }
+}
+
+// Nginx/Cloudflare proxy ve POST yönlendirme sorunlarını aşan HTML Redirect fonksiyonu
+function htmlRedirect(url: string) {
+  return new NextResponse(
+    `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Yönlendiriliyorsunuz...</title>
+        <meta http-equiv="refresh" content="0;url=${url}">
+      </head>
+      <body>
+        <script>window.location.href = "${url}";</script>
+        <p>Lütfen bekleyin, yönlendiriliyorsunuz... Eğer yönlenme gerçekleşmezse <a href="${url}">buraya tıklayın</a>.</p>
+      </body>
+    </html>
+    `,
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+      },
+    }
+  );
 }

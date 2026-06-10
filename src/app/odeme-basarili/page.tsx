@@ -10,9 +10,26 @@ export default function OdemeBasarili() {
   const [countdown, setCountdown] = useState(10);
   const { clearCart } = useCart(); // Sepeti temizleme fonksiyonunu alıyoruz
 
-  // Sayfa yüklendiğinde sepeti temizle
+  // Zombi sepeti engellemek için güncellenmiş temizleme işlemi
   useEffect(() => {
-    clearCart();
+    // Sayfa ilk yüklendiğinde React'in localStorage'ı okumasını (hydration) 
+    // beklemesi için ufak bir gecikme veriyoruz.
+    const clearTimer = setTimeout(() => {
+      // 1. React State'ini temizle
+      clearCart();
+
+      // 2. Garanti olması için tarayıcı hafızasını zorla temizle
+      // Not: Eğer useCart hook'unda localStorage için farklı bir isim ('cart-storage', 'basket' vs.) 
+      // kullanıyorsan aşağıdaki 'cart' yazan yerleri ona göre değiştirmelisin.
+      try {
+        localStorage.removeItem('cart');
+        localStorage.removeItem('cart-storage'); // Zustand vs kullanıyorsan default isimler
+      } catch (e) {
+        console.error("LocalStorage temizlenirken hata:", e);
+      }
+    }, 500); // Yarım saniye bekle ve vur
+
+    return () => clearTimeout(clearTimer);
   }, [clearCart]);
 
   useEffect(() => {

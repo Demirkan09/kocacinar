@@ -34,34 +34,16 @@ function UrunlerPage() {
   
   // Sürükle-Bırak için State
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-// ÖNEMLİ: Yükleniyor Durumu için Yeni State
-const [isLoading, setIsLoading] = useState<boolean>(true);
+  // Yükleniyor Durumu State'i
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   // Kategori Kaydırma Ref'i
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
-  // Kategoriler (LocalStorage ile tarayıcıda kalıcı)
-  const [categories, setCategories] = useState<string[]>([
-    'PEYNİR', 'ZEYTİN', 'SÜT ÜRÜNLERİ', 'ET ÜRÜNLERİ', 'KAHVALTILIK', 'BAL & REÇEL', 'ŞARKÜTERİ', 'MEZE'
-  ]);
-
-  // Sayfa tarayıcıda yüklenir yüklenmez LocalStorage kontrolü
-  useEffect(() => {
-    const saved = localStorage.getItem('kocacinar_categories');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setCategories(parsed);
-          setFormData(prev => ({ ...prev, category: parsed[0] }));
-        }
-      } catch (e) {
-        console.error("Kategori yükleme hatası:", e);
-      }
-    }
-  }, []);
+  // Kategoriler State (Veritabanından çekilip güncellenecek)
+  const [categories, setCategories] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({ 
-    name: '', price: '', old_price: '', image_url: '', category: categories[0] || 'PEYNİR', unit: 'kg' 
+    name: '', price: '', old_price: '', image_url: '', category: '', unit: 'kg' 
   });
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -83,25 +65,38 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
     }
   };
 
+  // Sayfa ilk yüklendiğinde hem ürünleri hem kategorileri veritabanından çekiyoruz kanka
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchCategoriesAndProducts = async () => {
       try {
-        setIsLoading(true); // Veri çekimi başlarken true yapıyoruz
-        const res = await fetch('/api/products');
-        if (!res.ok) throw new Error('Ürünler yüklenirken hata oluştu.');
-        const data = await res.json();
+        setIsLoading(true);
+
+        // 1. Veritabanından Kategorileri Çek
+        const catRes = await fetch('/api/categories');
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          if (Array.isArray(catData)) {
+            setCategories(catData);
+            setFormData(prev => ({ ...prev, category: catData[0] || 'PEYNİR' }));
+          }
+        }
+
+        // 2. Veritabanından Ürünleri Çek
+        const prodRes = await fetch('/api/products');
+        if (!prodRes.ok) throw new Error('Ürünler yüklenirken hata oluştu.');
+        const prodData = await prodRes.json();
         
-        if (Array.isArray(data)) setProducts(data);
-        else if (data && Array.isArray(data.products)) setProducts(data.products);
-        else if (data && typeof data === 'object') {
-          const possibleArray = data.rows || data.data;
+        if (Array.isArray(prodData)) setProducts(prodData);
+        else if (prodData && Array.isArray(prodData.products)) setProducts(prodData.products);
+        else if (prodData && typeof prodData === 'object') {
+          const possibleArray = prodData.rows || prodData.data;
           if (Array.isArray(possibleArray)) setProducts(possibleArray);
         }
       } catch (err) {
-        console.error("Ürün listesi alınırken hata oluştu:", err);
+        console.error("Veriler alınırken hata oluştu:", err);
       } finally {
-      setIsLoading(false); // Başarılı olsa da hata alsa da yüklenme bitti
-    }
+        setIsLoading(false);
+      }
     };
 
     const checkAdminStatus = async () => {
@@ -113,7 +108,7 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
     };
 
     checkAdminStatus();
-    fetchProducts();
+    fetchCategoriesAndProducts();
   }, []);
 
   const scrollCategory = (direction: 'left' | 'right') => {
@@ -123,35 +118,74 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
     }
   };
 
-  const saveCategories = (newCats: string[]) => {
-    setCategories(newCats);
-    localStorage.setItem('kocacinar_categories', JSON.stringify(newCats));
-  };
-
-  const handleAddCategory = () => {
+  // ✅ Veritabanına Yeni Kategori Ekleme Fonksiyonu
+  const handleAddCategory = async () => {
     if (newCategoryName.trim() === '') return;
     const formattedCat = newCategoryName.trim().toUpperCase();
-    if (!categories.includes(formattedCat)) {
-      saveCategories([...categories, formattedCat]);
-      setFormData({ ...formData, category: formattedCat });
-      setNewCategoryName('');
-    } else alert("Bu kategori zaten mevcut!");
+    
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: formattedCat })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setCategories([...categories, formattedCat]);
+        setFormData({ ...formData, category: formattedCat });
+        setNewCategoryName('');
+      } else {
+        alert(data.error || "Kategori eklenirken bir hata oluştu.");
+      }
+    } catch (err) {
+      console.error("Kategori eklenemedi:", err);
+    }
   };
 
-  const moveCategory = (index: number, direction: 'up' | 'down') => {
+  // ✅ Veritabanında Kategorileri Sıralama Fonksiyonu
+  const moveCategory = async (index: number, direction: 'up' | 'down') => {
     const newCats = [...categories];
     if (direction === 'up' && index > 0) {
       [newCats[index - 1], newCats[index]] = [newCats[index], newCats[index - 1]];
     } else if (direction === 'down' && index < newCats.length - 1) {
       [newCats[index + 1], newCats[index]] = [newCats[index], newCats[index + 1]];
     }
-    saveCategories(newCats);
+
+    setCategories(newCats);
+
+    try {
+      await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reorder', items: newCats })
+      });
+    } catch (err) {
+      console.error("Sıralama veritabanına kaydedilemedi:", err);
+    }
   };
 
-  const handleDeleteCategory = (cat: string) => {
+  // ✅ Veritabanından Kategori Silme Fonksiyonu
+  const handleDeleteCategory = async (cat: string) => {
     if (categories.length <= 1) return alert("En az bir kategori bulunmalıdır!");
-    if (confirm(`"${cat}" kategorisini silmek istediğinize emin misiniz?`)) {
-      saveCategories(categories.filter(c => c !== cat));
+    if (!confirm(`"${cat}" kategorisini silmek istediğinize emin misiniz?`)) return;
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: cat })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setCategories(categories.filter(c => c !== cat));
+        if (selectedCategory === cat) setSelectedCategory('HEPSİ');
+      } else {
+        alert(data.error || "Kategori silinemedi.");
+      }
+    } catch (err) {
+      console.error("Kategori silme hatası:", err);
     }
   };
 
@@ -266,7 +300,7 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
     <div className="min-h-screen bg-[#F5F0E6] py-16 px-4 md:px-8 font-sans relative">
       <div className="max-w-7xl mx-auto">
         
-        {/* ================= BAŞLIK ================= */}
+        {/* Başlık alanı */}
         <div className="text-center mb-10 relative">
           <span className="text-[#D4A373] font-bold uppercase tracking-[0.2em] text-xs mb-3 block">Seçkin Koleksiyon</span>
           <h1 className="text-4xl md:text-5xl font-extrabold text-[#5e0d0f] mb-4">Ürünlerimiz</h1>
@@ -279,7 +313,7 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
           )}
         </div>
 
-        {/* ================= KAYDIRILABİLİR KATEGORİ PANELİ ================= */}
+        {/* Kaydırılabilir Dinamik Kategori Çubuğu */}
         <div className="w-full mb-12 border-b border-[#D4A373]/20 pb-4 relative group max-w-full">
           <button onClick={() => scrollCategory('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white border border-[#D4A373]/30 rounded-full shadow-md flex items-center justify-center text-[#5e0d0f] hover:bg-[#D4A373] hover:text-white transition-all md:opacity-0 group-hover:opacity-100 -ml-4 hidden md:flex font-bold">
             &lt;
@@ -313,27 +347,26 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
           </button>
         </div>
 
-{/* ================= ÜRÜN IZGARASI / YÜKLENİYOR ALANI ================= */}
-{isLoading ? (
-  <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm flex flex-col items-center justify-center gap-4">
-    {/* Dönen Yuvarlak Animasyonu (Spinner) */}
-    <div className="w-12 h-12 border-4 border-[#D4A373]/20 border-t-[#5e0d0f] rounded-full animate-spin"></div>
-    <div className="text-lg font-bold text-[#3C2F2F] tracking-wide animate-pulse">
-      Ürünler yükleniyor, lütfen bekleyiniz...
-    </div>
-  </div>
-) : filteredProducts.length === 0 ? (
-  <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
-    <div className="text-5xl mb-4">🛒</div>
-    <h3 className="text-lg font-bold text-[#3C2F2F]">Aradığınız kriterlere uygun ürün bulunmuyor.</h3>
-  </div>
-) : (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
-    {filteredProducts.map((product, index) => {
-      let discountPercent = 0;
-      if (product.old_price && Number(product.old_price) > Number(product.price)) {
-        discountPercent = Math.round(((Number(product.old_price) - Number(product.price)) / Number(product.old_price)) * 100);
-      }
+        {/* Ürünler Grid Yapısı / Yükleniyor Ekranı */}
+        {isLoading ? (
+          <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm flex flex-col items-center justify-center gap-4">
+            <div className="w-12 h-12 border-4 border-[#D4A373]/20 border-t-[#5e0d0f] rounded-full animate-spin"></div>
+            <div className="text-lg font-bold text-[#3C2F2F] tracking-wide animate-pulse">
+              Ürünler ve kategoriler yükleniyor, lütfen bekleyiniz...
+            </div>
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
+            <div className="text-5xl mb-4">🛒</div>
+            <h3 className="text-lg font-bold text-[#3C2F2F]">Aradığınız kriterlere uygun ürün bulunmuyor.</h3>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            {filteredProducts.map((product, index) => {
+              let discountPercent = 0;
+              if (product.old_price && Number(product.old_price) > Number(product.price)) {
+                discountPercent = Math.round(((Number(product.old_price) - Number(product.price)) / Number(product.old_price)) * 100);
+              }
 
               return (
                 <div 
@@ -350,7 +383,6 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
                     </div>
                   )}
 
-                  {/* 🛠️ TAM GÜNCEL KUSURSUZ GÖRSEL ALANI (Sıfıra sıfır, boşluksuz ve oval) */}
                   <div className="h-52 md:h-60 w-full relative overflow-hidden rounded-t-[2rem]">
                     {discountPercent > 0 && (
                       <div className="absolute top-3 left-3 bg-[#5e0d0f] text-[#F5F0E6] text-[10px] font-extrabold px-3 py-1 rounded-full shadow-md z-10 tracking-wider">
@@ -374,7 +406,6 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
                     )}
                   </div>
 
-                  {/* Metin ve Buton İçerik Alanı (Padding ve boşluklar buraya dengelendi) */}
                   <div className="p-4 md:p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-[#D4A373] tracking-wider uppercase block">{product.category}</span>
@@ -389,7 +420,6 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
                       </div>
                     </div>
 
-                    {/* Sepete Ekle Butonu */}
                     <button 
                       onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, image_url: product.image_url, category: product.category, unit: product.unit })}
                       className="w-full bg-[#5e0d0f] hover:bg-[#3d080a] text-white transition-all duration-300 font-bold text-xs md:text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-[0.98]"
@@ -400,7 +430,6 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
                       Sepete Ekle
                     </button>
                   </div>
-
                 </div>
               );
             })}
@@ -408,7 +437,7 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
         )}
       </div>
 
-      {/* ================= ADMİN MODAL ================= */}
+      {/* Admin Panel Modal Düzenlemesi */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-[#3C2F2F]/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
@@ -420,9 +449,9 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
             </div>
 
-            {/* KATEGORİ YÖNETİMİ ALANI */}
+            {/* GERÇEK DİNAMİK KATEGORİ PANELİ */}
             <div className="mb-8 p-5 bg-[#FBF9F4] border border-[#D4A373]/30 rounded-2xl">
-              <h4 className="text-sm font-bold text-[#5e0d0f] uppercase tracking-widest mb-3">Kategorileri Yönet (Sırala)</h4>
+              <h4 className="text-sm font-bold text-[#5e0d0f] uppercase tracking-widest mb-3">Kategorileri Yönet (Canlı)</h4>
               <div className="flex gap-2 mb-3">
                 <input 
                   type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)}
@@ -473,30 +502,11 @@ const [isLoading, setIsLoading] = useState<boolean>(true);
                 </div>
               </div>
 
-              {/* DOSYA YÜKLEME ALANI */}
               <div className="col-span-2 bg-gray-50 p-4 rounded-2xl border border-dashed border-gray-300">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleFileChange} 
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#D4A373]/20 file:text-[#5e0d0f] hover:file:bg-[#D4A373]/30 transition-all cursor-pointer mb-3" 
-                />
-                <input 
-                  type="text" 
-                  value={formData.image_url.startsWith('data:') ? 'Görsel Başarıyla Yüklendi (Base64 Mode)' : formData.image_url} 
-                  onChange={e => setFormData({...formData, image_url: e.target.value})} 
-                  disabled={formData.image_url.startsWith('data:')}
-                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none disabled:bg-gray-100 disabled:text-green-600 disabled:font-bold" 
-                  placeholder="Veya Resim URL Girin (https://...)" 
-                />
+                <input type="file" accept="image/*" onChange={handleFileChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#D4A373]/20 file:text-[#5e0d0f] hover:file:bg-[#D4A373]/30 transition-all cursor-pointer mb-3" />
+                <input type="text" value={formData.image_url.startsWith('data:') ? 'Görsel Başarıyla Yüklendi (Base64 Mode)' : formData.image_url} onChange={e => setFormData({...formData, image_url: e.target.value})} disabled={formData.image_url.startsWith('data:')} className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none disabled:bg-gray-100 disabled:text-green-600 disabled:font-bold" placeholder="Veya Resim URL Girin (https://...)" />
                 {formData.image_url.startsWith('data:') && (
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData({...formData, image_url: ''})} 
-                    className="text-[10px] text-red-500 hover:underline mt-1 block pl-1"
-                  >
-                    Resmi Kaldır
-                  </button>
+                  <button type="button" onClick={() => setFormData({...formData, image_url: ''})} className="text-[10px] text-red-500 hover:underline mt-1 block pl-1">Resmi Kaldır</button>
                 )}
               </div>
 

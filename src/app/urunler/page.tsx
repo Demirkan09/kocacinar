@@ -34,7 +34,8 @@ function UrunlerPage() {
   
   // Sürükle-Bırak için State
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-
+// ÖNEMLİ: Yükleniyor Durumu için Yeni State
+const [isLoading, setIsLoading] = useState<boolean>(true);
   // Kategori Kaydırma Ref'i
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +86,7 @@ function UrunlerPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setIsLoading(true); // Veri çekimi başlarken true yapıyoruz
         const res = await fetch('/api/products');
         if (!res.ok) throw new Error('Ürünler yüklenirken hata oluştu.');
         const data = await res.json();
@@ -97,7 +99,9 @@ function UrunlerPage() {
         }
       } catch (err) {
         console.error("Ürün listesi alınırken hata oluştu:", err);
-      }
+      } finally {
+      setIsLoading(false); // Başarılı olsa da hata alsa da yüklenme bitti
+    }
     };
 
     const checkAdminStatus = async () => {
@@ -309,19 +313,27 @@ function UrunlerPage() {
           </button>
         </div>
 
-        {/* ================= ÜRÜN IZGARASI ================= */}
-        {filteredProducts.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
-            <div className="text-5xl mb-4">🛒</div>
-            <h3 className="text-lg font-bold text-[#3C2F2F]">Aradığınız kriterlere uygun ürün bulunmuyor.</h3>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
-            {filteredProducts.map((product, index) => {
-              let discountPercent = 0;
-              if (product.old_price && Number(product.old_price) > Number(product.price)) {
-                discountPercent = Math.round(((Number(product.old_price) - Number(product.price)) / Number(product.old_price)) * 100);
-              }
+{/* ================= ÜRÜN IZGARASI / YÜKLENİYOR ALANI ================= */}
+{isLoading ? (
+  <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm flex flex-col items-center justify-center gap-4">
+    {/* Dönen Yuvarlak Animasyonu (Spinner) */}
+    <div className="w-12 h-12 border-4 border-[#D4A373]/20 border-t-[#5e0d0f] rounded-full animate-spin"></div>
+    <div className="text-lg font-bold text-[#3C2F2F] tracking-wide animate-pulse">
+      Ürünler yükleniyor, lütfen bekleyiniz...
+    </div>
+  </div>
+) : filteredProducts.length === 0 ? (
+  <div className="text-center py-20 bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm">
+    <div className="text-5xl mb-4">🛒</div>
+    <h3 className="text-lg font-bold text-[#3C2F2F]">Aradığınız kriterlere uygun ürün bulunmuyor.</h3>
+  </div>
+) : (
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+    {filteredProducts.map((product, index) => {
+      let discountPercent = 0;
+      if (product.old_price && Number(product.old_price) > Number(product.price)) {
+        discountPercent = Math.round(((Number(product.old_price) - Number(product.price)) / Number(product.old_price)) * 100);
+      }
 
               return (
                 <div 

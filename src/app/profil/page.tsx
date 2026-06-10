@@ -31,7 +31,7 @@ function ProfileContent() {
   const [myOrders, setMyOrders] = useState<any[]>([]); 
   const [adminOrders, setAdminOrders] = useState<any[]>([]); 
   const [orderSearchQuery, setOrderSearchQuery] = useState(''); 
-
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,16 +45,26 @@ function ProfileContent() {
   }, [searchParams]);
 
   // Siparişleri Veritabanından Çekme
-  const loadOrders = async (isAdmin: boolean) => {
+const loadOrders = async (isAdmin: boolean) => {
+    setIsOrdersLoading(true); // Yükleniyor animasyonunu başlat
     try {
       if (isAdmin) {
-        const res = await fetch('/api/orders');
-        if (res.ok) setAdminOrders(await res.json());
+        // Adminse her iki isteği de aynı anda atarak süreyi yarıya indir
+        const [adminRes, meRes] = await Promise.all([
+          fetch('/api/orders'),
+          fetch('/api/orders/me')
+        ]);
+        
+        if (adminRes.ok) setAdminOrders(await adminRes.json());
+        if (meRes.ok) setMyOrders(await meRes.json());
+      } else {
+        const resMe = await fetch('/api/orders/me');
+        if (resMe.ok) setMyOrders(await resMe.json());
       }
-      const resMe = await fetch('/api/orders/me');
-      if (resMe.ok) setMyOrders(await resMe.json());
     } catch (e) { 
       console.error('Siparişler çekilemedi', e); 
+    } finally {
+      setIsOrdersLoading(false); // İstekler bitince animasyonu durdur
     }
   };
 
@@ -461,19 +471,22 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= SİPARİŞLERİM TABI (KULLANICI) ================= */}
+{/* ================= SİPARİŞLERİM TABI (KULLANICI) ================= */}
           {activeTab === 'siparis' && !isAdmin && (
             <div className="animate-in fade-in duration-500">
               <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-6">Sipariş Geçmişim</h3>
               
-              {myOrders.length === 0 ? (
+              {isOrdersLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#5e0d0f] mb-4"></div>
+                  <p className="text-[#3C2F2F] font-bold tracking-widest uppercase text-xs">Siparişleriniz Yükleniyor...</p>
+                </div>
+              ) : myOrders.length === 0 ? (
                 <div className="text-center py-20 bg-gray-50 rounded-3xl border border-gray-100 shadow-sm">
                   <div className="text-6xl mb-6 opacity-30">📦</div>
                   <h4 className="text-2xl font-bold text-[#3C2F2F] mb-2">Siparişiniz Bulunmuyor</h4>
                   <p className="text-gray-500">Lezzetli ürünlerimizden sipariş vererek burayı doldurabilirsiniz.</p>
-                  <a href="/urunler" className="inline-block mt-8 bg-[#5e0d0f] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4A373] transition-all">
-                    Ürünleri İncele
-                  </a>
+                  <a href="/urunler" className="inline-block mt-8 bg-[#5e0d0f] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4A373] transition-all">Ürünleri İncele</a>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -536,16 +549,24 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
+{/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
           {activeTab === 'aktif_siparisler' && isAdmin && (
             <div className="animate-in fade-in duration-500">
               <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-6 flex items-center gap-3">
                 Aktif Siparişler 
-                <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full shadow-sm">{activeOrders.length}</span>
+                {!isOrdersLoading && (
+                  <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full shadow-sm">{activeOrders.length}</span>
+                )}
               </h3>
               
-              {activeOrders.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 bg-[#FBF9F4] rounded-3xl border border-dashed border-[#D4A373]/30">Bekleyen aktif sipariş yok. 🥳</div>
+              {isOrdersLoading ? (
+                // DÖNEN YÜKLENİYOR GÖRSELİ
+                <div className="flex flex-col items-center justify-center py-20 bg-[#FBF9F4] rounded-3xl border border-dashed border-[#D4A373]/30">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#5e0d0f] mb-4"></div>
+                  <p className="text-[#3C2F2F] font-bold tracking-widest uppercase text-xs">Siparişler Yükleniyor...</p>
+                </div>
+              ) : activeOrders.length === 0 ? (
+                <div className="text-center py-16 text-gray-500 bg-[#FBF9F4] rounded-3xl border border-dashed border-[#D4A373]/30">Bekleyen aktif sipariş yok.</div>
               ) : (
                 <div className="space-y-6">
                   {activeOrders.map(order => {
@@ -642,7 +663,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= GEÇMİŞ SİPARİŞLER (ADMİN) ================= */}
+{/* ================= GEÇMİŞ SİPARİŞLER (ADMİN) ================= */}
           {activeTab === 'gecmis_siparisler' && isAdmin && (
             <div className="animate-in fade-in duration-500">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-[#FBF9F4] p-4 rounded-2xl border border-[#D4A373]/20">
@@ -659,42 +680,48 @@ function ProfileContent() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
-                <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-widest text-[10px] border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-4">Sipariş No</th>
-                      <th className="px-6 py-4">Alıcı İsmi</th>
-                      <th className="px-6 py-4">İşlem Tarihi</th>
-                      <th className="px-6 py-4">Toplam Tutar</th>
-                      <th className="px-6 py-4 text-right">Son Durum</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {pastOrders.map(order => (
-                      <tr key={order.id} className="hover:bg-[#FBF9F4] transition-colors">
-                        <td className="px-6 py-4 font-bold text-[#5e0d0f] whitespace-nowrap">{order.order_no}</td>
-                        <td className="px-6 py-4 font-medium text-[#3C2F2F] whitespace-nowrap">{order.buyer_name}</td>
-                        <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('tr-TR')}</td>
-                        <td className="px-6 py-4 font-extrabold text-[#3C2F2F] whitespace-nowrap">₺{order.total_amount}</td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide shadow-sm inline-block ${order.status === 'IPTAL' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                            {order.status === 'IPTAL' ? 'İPTAL EDİLDİ' : 'TESLİM EDİLDİ'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {pastOrders.length === 0 && (
+              {isOrdersLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-[#FBF9F4] rounded-3xl border border-dashed border-[#D4A373]/30">
+                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#5e0d0f] mb-4"></div>
+                  <p className="text-[#3C2F2F] font-bold tracking-widest uppercase text-xs">Arşiv Yükleniyor...</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-gray-200 rounded-2xl shadow-sm">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-widest text-[10px] border-b border-gray-200">
                       <tr>
-                        <td colSpan={5} className="text-center py-12 text-gray-500 font-medium">
-                          <span className="text-4xl block mb-2 opacity-50">📂</span>
-                          Geçmiş sipariş bulunamadı veya arama kriterinize uyan kayıt yok.
-                        </td>
+                        <th className="px-6 py-4">Sipariş No</th>
+                        <th className="px-6 py-4">Alıcı İsmi</th>
+                        <th className="px-6 py-4">İşlem Tarihi</th>
+                        <th className="px-6 py-4">Toplam Tutar</th>
+                        <th className="px-6 py-4 text-right">Son Durum</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {pastOrders.length > 0 ? pastOrders.map(order => (
+                        <tr key={order.id} className="hover:bg-[#FBF9F4] transition-colors">
+                          <td className="px-6 py-4 font-bold text-[#5e0d0f] whitespace-nowrap">{order.order_no}</td>
+                          <td className="px-6 py-4 font-medium text-[#3C2F2F] whitespace-nowrap">{order.buyer_name}</td>
+                          <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('tr-TR')}</td>
+                          <td className="px-6 py-4 font-extrabold text-[#3C2F2F] whitespace-nowrap">₺{order.total_amount}</td>
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide shadow-sm inline-block ${order.status === 'IPTAL' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                              {order.status === 'IPTAL' ? 'İPTAL EDİLDİ' : 'TESLİM EDİLDİ'}
+                            </span>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={5} className="text-center py-12 text-gray-500 font-medium">
+                            <span className="text-4xl block mb-2 opacity-50">📂</span>
+                            Aranan kriterlere uygun kayıt bulunamadı.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

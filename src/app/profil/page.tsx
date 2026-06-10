@@ -280,7 +280,7 @@ function ProfileContent() {
       {/* SOL MENÜ (SIDEBAR) */}
       <div className="w-full md:w-80 bg-white md:min-h-screen p-6 md:p-8 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#D4A373]/20">
         <div>
-          <div className="mb-10 text-center md:text-left flex flex-col items-center md:items-start">
+          <div className="mb-8 md:mb-10 text-center md:text-left flex flex-col items-center md:items-start">
             <div className="w-20 h-20 bg-gradient-to-br from-[#5e0d0f] to-[#8a1c1f] rounded-3xl flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg shadow-[#5e0d0f]/20">
               {avatarInitials}
             </div>
@@ -291,17 +291,18 @@ function ProfileContent() {
             {isAdmin && <span className="bg-amber-100 text-amber-700 text-[10px] px-2 py-1 rounded font-bold uppercase mt-2">Yönetici</span>}
           </div>
 
-          <nav className="space-y-2 flex flex-row md:flex-col overflow-x-auto md:overflow-visible pb-4 md:pb-0 hide-scrollbar gap-2 md:gap-0">
-            <button onClick={() => setActiveTab('kisisel')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'kisisel' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+          {/* MOBİL VE DESKTOP UYUMLU NAVIGASYON (YATAY SCROLL) */}
+          <nav className="flex flex-row md:flex-col overflow-x-auto md:overflow-visible pb-4 md:pb-0 gap-3 md:gap-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <button onClick={() => setActiveTab('kisisel')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 border md:border-none ${activeTab === 'kisisel' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
               <span className="text-lg">👤</span> Kişisel Bilgiler
             </button>
-            <button onClick={() => setActiveTab('adres')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'adres' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+            <button onClick={() => setActiveTab('adres')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 border md:border-none ${activeTab === 'adres' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
               <span className="text-lg">📍</span> Adreslerim
             </button>
             
             {/* SİPARİŞ SEKME - KULLANICI */}
             {!isAdmin && (
-              <button onClick={() => setActiveTab('siparis')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 ${activeTab === 'siparis' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+              <button onClick={() => setActiveTab('siparis')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold transition-all flex items-center gap-3 border md:border-none ${activeTab === 'siparis' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                 <span className="text-lg">📦</span> Siparişlerim
               </button>
             )}
@@ -309,12 +310,12 @@ function ProfileContent() {
             {/* SİPARİŞ SEKMELERİ - ADMİN */}
             {isAdmin && (
               <>
-                <div className="my-4 border-t border-gray-100 pt-4"></div>
-                <button onClick={() => setActiveTab('aktif_siparisler')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 ${activeTab === 'aktif_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+                <div className="hidden md:block my-4 border-t border-gray-100 pt-4"></div>
+                <button onClick={() => setActiveTab('aktif_siparisler')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'aktif_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                   <span className="text-lg">🚀</span> Siparişler (Aktif)
                   {activeOrders.length > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{activeOrders.length}</span>}
                 </button>
-                <button onClick={() => setActiveTab('gecmis_siparisler')} className={`flex-shrink-0 w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 ${activeTab === 'gecmis_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md' : 'text-gray-600 hover:bg-[#F5F0E6]'}`}>
+                <button onClick={() => setActiveTab('gecmis_siparisler')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'gecmis_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                   <span className="text-lg">📚</span> Geçmiş Siparişler
                 </button>
               </>
@@ -323,7 +324,7 @@ function ProfileContent() {
           </nav>
         </div>
 
-        <button onClick={handleLogout} className="mt-8 md:mt-12 w-full border border-red-200 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-50 transition-all text-sm flex items-center justify-center gap-2">
+        <button onClick={handleLogout} className="mt-6 md:mt-12 w-full border border-red-200 text-red-600 py-4 rounded-2xl font-bold hover:bg-red-50 transition-all text-sm flex items-center justify-center gap-2">
           <span>🚪</span> Güvenli Çıkış Yap
         </button>
       </div>
@@ -375,7 +376,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* ================= ADRESLERİM TABI (RENKLERİ DÜZELTİLDİ) ================= */}
+          {/* ================= ADRESLERİM TABI ================= */}
           {activeTab === 'adres' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-center mb-10">
@@ -396,22 +397,18 @@ function ProfileContent() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Adres Başlığı (Ev, İş vb.)</label>
-                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
                       <input type="text" value={addrTitle} onChange={(e) => setAddrTitle(e.target.value)} placeholder="Örn: Ev Adresim" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">İl</label>
-                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
                       <input type="text" value={addrCity} onChange={(e) => setAddrCity(e.target.value)} placeholder="Örn: Aydın" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">İlçe</label>
-                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
                       <input type="text" value={addrDistrict} onChange={(e) => setAddrDistrict(e.target.value)} placeholder="Örn: Efeler" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all" />
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Açık Adres</label>
-                      {/* YAZI RENGİ EKLENDİ: text-[#3C2F2F] font-medium */}
                       <textarea rows={3} value={addrDetail} onChange={(e) => setAddrDetail(e.target.value)} placeholder="Mahalle, sokak, bina no..." className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all resize-none"></textarea>
                     </div>
                   </div>
@@ -538,8 +535,6 @@ function ProfileContent() {
               )}
             </div>
           )}
-
-        
 
           {/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
           {activeTab === 'aktif_siparisler' && isAdmin && (

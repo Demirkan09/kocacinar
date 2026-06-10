@@ -9,11 +9,11 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
-      { url: '/favicon.ico?v=2', sizes: 'any' },
+      { url: '/icon.ico?v=2', sizes: 'any' },
       { url: '/favicon-96x96.png?v=2', sizes: '96x96', type: 'image/png' },
       { url: '/favicon.svg?v=2', type: 'image/svg+xml' },
     ],
-    shortcut: '/favicon.ico?v=2',
+    shortcut: '/icon.ico?v=2',
     apple: [
       { url: '/apple-touch-icon.png?v=2', sizes: '180x180' },
     ],

@@ -3,8 +3,10 @@ import { query } from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { join } from 'path';
+// 🛠️ EKLENDİ: unlink modülü ile diskteki fiziksel dosyaları siliyoruz
+import { writeFile, unlink } from 'fs/promises';
 
-// Admin Doğrulama Fonksiyonu (Aynen Korundu)
+// Admin Doğrulama Fonksiyonu
 async function isAdmin() {
   try {
     const cookieStore = await cookies();
@@ -24,7 +26,7 @@ async function isAdmin() {
   }
 }
 
-// 1. ÜRÜNLERİ LİSTELEME (GET - Aynen Korundu)
+// 1. ÜRÜNLERİ LİSTELEME (GET)
 export async function GET() {
   try {
     const res = await query('SELECT * FROM products ORDER BY sort_order ASC, id DESC');
@@ -34,29 +36,47 @@ export async function GET() {
   }
 }
 
-// 2. YENİ ÜRÜN EKLEME (POST - JSON Tabanlı Güncellendi)
+// 2. YENİ ÜRÜN EKLEME (POST)
 export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
   }
 
   try {
-    // 🛠️ FIX: FormData yerine frontend'den gelen Base64 barındıran JSON verisini okuyoruz
-    const body = await request.json();
-    const { name, price, old_price, image_url, category, unit } = body;
+    const formData = await request.formData();
     
+    const name = formData.get('name') as string;
+    const price = formData.get('price') as string;
+    const old_price = formData.get('old_price') as string | null;
+    const category = formData.get('category') as string;
+    const unit = formData.get('unit') as string;
+    
+    const image = formData.get('image') as File | null;
+    let finalImageUrl = formData.get('image_url') as string || '/default.png';
+
     if (!name || !price) {
       return NextResponse.json({ error: 'İsim ve fiyat alanları zorunludur.' }, { status: 400 });
     }
 
-    const finalImageUrl = image_url || '/default.png';
+    if (image && image.size > 0) {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = image.name.split('.').pop();
+      const filename = `product-${uniqueSuffix}.${extension}`;
+      
+      const path = join(process.cwd(), 'public', 'uploads', filename);
+      await writeFile(path, buffer);
+      
+      finalImageUrl = `/uploads/${filename}`;
+    }
+
     const parsedOldPrice = old_price ? parseFloat(old_price) : null;
 
-    // Yeni ürünün en arkada düzgün listelenmesi için maksimum sıra numarasını buluyoruz
     const maxOrderRes = await query('SELECT MAX(sort_order) as max_order FROM products');
     const nextOrder = (maxOrderRes.rows[0]?.max_order || 0) + 1;
 
-    // unit ve sort_order kuralları birebir korundu
     const res = await query(
       'INSERT INTO products (name, price, old_price, image_url, category, unit, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', nextOrder]
@@ -64,43 +84,82 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, product: res.rows[0] });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Yükleme Hatası:", error);
+    return NextResponse.json({ error: 'Ürün eklenirken bir sunucu hatası oluştu.' }, { status: 500 });
   }
 }
 
-// 3. ÜRÜN GÜNESLLEME VE SIRALAMA (PUT - JSON Tabanlı Tek Çatıda Birleştirildi)
+// 3. ÜRÜN GÜNCELLEME VE SIRALAMA (PUT)
 export async function PUT(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
   }
 
   try {
-    const body = await request.json();
+    const contentType = request.headers.get('content-type') || '';
 
-    // 📋 Senaryo A: Sürükle-bırak ile sıralama değiştirildiyse (Eski mantık aynen korundu)
-    if (body.action === 'reorder' && Array.isArray(body.items)) {
-      for (const item of body.items) {
-        await query('UPDATE products SET sort_order = $1 WHERE id = $2', [
-          parseInt(item.sort_order),
-          parseInt(item.id)
-        ]);
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      if (body.action === 'reorder' && Array.isArray(body.items)) {
+        for (const item of body.items) {
+          await query('UPDATE products SET sort_order = $1 WHERE id = $2', [
+            parseInt(item.sort_order),
+            parseInt(item.id)
+          ]);
+        }
+        return NextResponse.json({ success: true, message: 'Sıralama güncellendi.' });
       }
-      return NextResponse.json({ success: true, message: 'Sıralama güncellendi.' });
+      return NextResponse.json({ error: 'Geçersiz JSON isteği.' }, { status: 400 });
     }
 
-    // 📝 Senaryo B: Normal ürün bilgilerini düzenleme (JSON uyumlu)
-    const { id, name, price, old_price, image_url, category, unit } = body;
+    const formData = await request.formData();
+    
+    const id = formData.get('id') as string;
+    const name = formData.get('name') as string;
+    const price = formData.get('price') as string;
+    const old_price = formData.get('old_price') as string | null;
+    const category = formData.get('category') as string;
+    const unit = formData.get('unit') as string;
+    
+    const image = formData.get('image') as File | null;
+    let finalImageUrl = formData.get('image_url') as string;
 
     if (!id || !name || !price) {
       return NextResponse.json({ error: 'Eksik bilgi gönderildi.' }, { status: 400 });
     }
 
+    // 🧹 EKLENDİ: Önce ürünün mevcut eski resmini bulalım
+    const oldProductRes = await query('SELECT image_url FROM products WHERE id = $1', [parseInt(id)]);
+    const oldImageUrl = oldProductRes.rows[0]?.image_url;
+
+    if (image && image.size > 0) {
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const extension = image.name.split('.').pop();
+      const filename = `product-${uniqueSuffix}.${extension}`;
+      
+      const path = join(process.cwd(), 'public', 'uploads', filename);
+      await writeFile(path, buffer);
+      finalImageUrl = `/uploads/${filename}`;
+
+      // 🧹 EKLENDİ: Eğer yeni resim başarıyla yüklendiyse ve eski resim de sunucudaysa (uploads içindeyse) onu sil!
+      if (oldImageUrl && oldImageUrl.startsWith('/uploads/')) {
+        try {
+          const oldPath = join(process.cwd(), 'public', oldImageUrl);
+          await unlink(oldPath);
+        } catch (e) {
+          console.log("Eski resim silinemedi veya zaten yok:", e);
+        }
+      }
+    }
+
     const parsedOldPrice = old_price ? parseFloat(old_price) : null;
 
-    // Düzenleme işlemi ve unit entegrasyonu korundu
     const res = await query(
       'UPDATE products SET name = $1, price = $2, old_price = $3, image_url = $4, category = $5, unit = $6 WHERE id = $7 RETURNING *',
-      [name.trim(), parseFloat(price), parsedOldPrice, image_url, category || 'PEYNİR', unit || 'kg', parseInt(id)]
+      [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', parseInt(id)]
     );
 
     if (res.rowCount === 0) {
@@ -109,11 +168,12 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true, product: res.rows[0] });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Güncelleme Hatası:", error);
+    return NextResponse.json({ error: 'Ürün güncellenirken sunucu hatası oluştu.' }, { status: 500 });
   }
 }
 
-// 4. ÜRÜN SİLME (DELETE - Aynen Korundu)
+// 4. ÜRÜN SİLME (DELETE)
 export async function DELETE(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: 'Yönetici yetkisi gerekiyor.' }, { status: 403 });
@@ -123,8 +183,23 @@ export async function DELETE(request: Request) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ error: 'Ürün ID bilgisi eksik.' }, { status: 400 });
 
-    // Ürünü silmeden önce veritabanından siliyoruz
+    // 🧹 EKLENDİ: Ürünü tamamen silmeden önce resminin linkini alalım
+    const productRes = await query('SELECT image_url FROM products WHERE id = $1', [parseInt(id)]);
+    const imageUrl = productRes.rows[0]?.image_url;
+
+    // Önce veritabanından ürünü siliyoruz
     await query('DELETE FROM products WHERE id = $1', [parseInt(id)]);
+
+    // 🧹 EKLENDİ: Eğer ürünün resmi /uploads klasöründeyse, onu fiziksel diskten tamamen siliyoruz
+    if (imageUrl && imageUrl.startsWith('/uploads/')) {
+      try {
+        const filePath = join(process.cwd(), 'public', imageUrl);
+        await unlink(filePath);
+      } catch (e) {
+        console.log("Silinecek fiziksel resim dosyası bulunamadı:", e);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

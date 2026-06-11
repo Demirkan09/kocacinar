@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     // Kullanıcı var mı kontrol et
     const userRes = await query('SELECT id, first_name FROM profiles WHERE email = $1', [email.trim()]);
     if (userRes.rowCount === 0) {
-      // Güvenlik gereği kullanıcı yok demiyoruz, mail gönderildi süsü veriyoruz kanka
+      // Güvenlik gereği kullanıcı yok demiyoruz, mail gönderildi süsü veriyoruz
       return NextResponse.json({ success: true });
     }
 

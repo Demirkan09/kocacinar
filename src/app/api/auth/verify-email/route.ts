@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       return new Response("Bu doğrulama bağlantısı geçersiz veya süresi dolmuş.", { status: 400 });
     }
 
-    // Kullanıcıyı tarayıcıda şık bir başarı sayfasına yönlendiriyoruz kanka:
+    // Kullanıcıyı tarayıcıda şık bir başarı sayfasına yönlendiriyoruz:
     return NextResponse.redirect(new URL('/profil?verified=true', request.url));
 
   } catch (error: any) {

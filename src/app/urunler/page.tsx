@@ -65,7 +65,8 @@ function UrunlerPage() {
     }
   };
 
-  // Sayfa ilk yüklendiğinde hem ürünleri hem kategorileri veritabanından çekiyoruz kanka
+  // Sayfa ilk yüklendiğinde hem ürünleri hem kategorileri veritabanından çekiyoruz 
+ // Sayfa ilk yüklendiğinde hem ürünleri hem kategorileri veritabanından çekiyoruz 
   useEffect(() => {
     const fetchCategoriesAndProducts = async () => {
       try {
@@ -76,8 +77,11 @@ function UrunlerPage() {
         if (catRes.ok) {
           const catData = await catRes.json();
           if (Array.isArray(catData)) {
+            // Veri zaten düz isim dizisi geldiği için direkt setliyoruz!
             setCategories(catData);
-            setFormData(prev => ({ ...prev, category: catData[0] || 'PEYNİR' }));
+            if (catData.length > 0) {
+              setFormData(prev => ({ ...prev, category: catData[0] }));
+            }
           }
         }
 
@@ -86,15 +90,18 @@ function UrunlerPage() {
         if (!prodRes.ok) throw new Error('Ürünler yüklenirken hata oluştu.');
         const prodData = await prodRes.json();
         
-        if (Array.isArray(prodData)) setProducts(prodData);
-        else if (prodData && Array.isArray(prodData.products)) setProducts(prodData.products);
-        else if (prodData && typeof prodData === 'object') {
+        if (Array.isArray(prodData)) {
+          setProducts(prodData);
+        } else if (prodData && Array.isArray(prodData.products)) {
+          setProducts(prodData.products);
+        } else if (prodData && typeof prodData === 'object') {
           const possibleArray = prodData.rows || prodData.data;
           if (Array.isArray(possibleArray)) setProducts(possibleArray);
         }
       } catch (err) {
         console.error("Veriler alınırken hata oluştu:", err);
       } finally {
+        // Ne olursa olsun yükleniyor ekranını kapatıyoruz ki site kilitlenmesin!
         setIsLoading(false);
       }
     };

@@ -396,7 +396,7 @@ if (profile.address) {
                 </div>
                 
 
-                {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir kanka) */}
+                {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir) */}
                 <button 
                   onClick={handleWhatsAppCheckout}
                   disabled={isLoadingProfile}

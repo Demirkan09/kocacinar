@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import bcrypt from 'bcrypt';
 import { SignJWT } from 'jose';
-import crypto from 'crypto'; // Kanka import şeklini düzelttik, hata vermemesi için
+import crypto from 'crypto'; //import şeklini düzelttik, hata vermemesi için
 import { sendKocaCinarMail } from '@/lib/mail';
 
 export async function POST(request: Request) {

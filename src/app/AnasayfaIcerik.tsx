@@ -149,7 +149,7 @@ export default function AnasayfaIcerik() {
   // 5 Kategori Seçimini Set Etme
   const handleSaveHomepageCategories = async () => {
     if (tempSelectedCategories.length !== 5) {
-      alert('Lütfen vitrin için tam olarak 5 tane kategori seç kanka!');
+      alert('Lütfen vitrin için tam olarak 5 tane kategori seç!');
       return;
     }
     try {
@@ -171,7 +171,7 @@ export default function AnasayfaIcerik() {
       setTempSelectedCategories(tempSelectedCategories.filter(c => c !== cat));
     } else {
       if (tempSelectedCategories.length >= 5) {
-        alert('Zaten 5 kategori seçtin, yenisini eklemek için önce birini çıkar kanka.');
+        alert('Zaten 5 kategori seçtin, yenisini eklemek için önce birini çıkar.');
         return;
       }
       setTempSelectedCategories([...tempSelectedCategories, cat]);
@@ -426,7 +426,7 @@ export default function AnasayfaIcerik() {
           <div className="bg-white w-full max-w-lg rounded-[28px] p-6 shadow-2xl border border-[#D4A373]/20 flex flex-col gap-4 max-h-[85vh] overflow-y-auto no-scrollbar">
             <div>
               <h3 className="text-xl font-extrabold text-[#5e0d0f] tracking-wide">Vitrin Kategorilerini Seç</h3>
-              <p className="text-xs text-gray-400 font-bold mt-1">Ana sayfada listelenmesini istediğin <span className="text-[#5e0d0f]">tam 5 kategoriyi</span> işaretle kanka.</p>
+              <p className="text-xs text-gray-400 font-bold mt-1">Ana sayfada listelenmesini istediğin <span className="text-[#5e0d0f]">tam 5 kategoriyi</span> işaretle.</p>
             </div>
             <div className="grid grid-cols-2 gap-2 my-2">
               {allDbCategories.map((cat) => {

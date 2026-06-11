@@ -19,12 +19,12 @@ export default function AnnouncementBar() {
     setMounted(true);
   }, []);
 
-  // Sunucu tarafında render edilmesini engelleyerek hydration hatasını kökten çözüyoruz kanka
+  // Sunucu tarafında render edilmesini engelleyerek hydration hatasını kökten çözüyoruz
   if (!mounted) return null;
 
   return (
     <div 
-      suppressHydrationWarning={true} // Doğru kullanım şekli etiket özelliğidir kanka
+      suppressHydrationWarning={true} // Doğru kullanım şekli etiket özelliğidir
       className="bg-[#000000] text-[#D4A373] py-2 text-[11px] md:text-xs overflow-hidden border-b border-[#D4A373]/20 uppercase tracking-[0.2em] font-bold"
     >
       <div className="flex items-center h-6">

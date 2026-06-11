@@ -1,6 +1,6 @@
 // src/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db'; // Eğer takma adın @/lib/db ise böyle, yoksa ../../../lib/db yap kanka
+import { query } from '@/lib/db'; // Eğer takma adın @/lib/db ise böyle, yoksa ../../../lib/db yap
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 

@@ -15,6 +15,18 @@ interface Product {
   sort_order?: number;
 }
 
+const normalizeTurkish = (str: string | null | undefined) => {
+  if (!str) return '';
+  return str
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+};
+
 function UrunlerPage() {
   const { addToCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
@@ -33,10 +45,115 @@ function UrunlerPage() {
   // 🚀 YENİ: Gerçek dosyayı hafızada tutacak State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // 🚀 YENİ: Görsel Büyütme (Lightbox) State'i
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
+  // 🚀 YENİ: Toplu Ürün Ekleme Sekme ve Veri State'leri
+  const [adminTab, setAdminTab] = useState<'single' | 'bulk'>('single');
+  const [bulkItems, setBulkItems] = useState<any[]>([]);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState<{ current: number; total: number } | null>(null);
+
   const [formData, setFormData] = useState({ 
     name: '', price: '', old_price: '', image_url: '', category: '', unit: 'kg' 
   });
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  const handleBulkImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const newItems = filesArray.map((file) => {
+        // Otomatik isim tahmini: dosya isminden uzantıyı temizle, çizgi ve alt çizgileri boşluk yap
+        const autoName = file.name
+          .substring(0, file.name.lastIndexOf('.'))
+          .replace(/[-_]/g, ' ')
+          .trim();
+
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          file,
+          previewUrl: URL.createObjectURL(file),
+          name: autoName,
+          price: '',
+          old_price: '',
+          category: categories[0] || 'PEYNİR',
+          unit: 'kg'
+        };
+      });
+
+      setBulkItems((prev) => [...prev, ...newItems]);
+    }
+  };
+
+  const removeBulkItem = (id: string) => {
+    setBulkItems((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const handleBulkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bulkItems.length === 0) {
+      alert("Lütfen en az bir görsel seçin.");
+      return;
+    }
+
+    // Basit validasyon: Tüm ürünleri kontrol et
+    for (const item of bulkItems) {
+      if (!item.name.trim() || !item.price.trim() || isNaN(parseFloat(item.price))) {
+        alert(`Lütfen "${item.name || 'İsimsiz Ürün'}" için geçerli bir ad ve fiyat girin.`);
+        return;
+      }
+    }
+
+    setBulkUploadProgress({ current: 0, total: bulkItems.length });
+    const uploadedProducts: Product[] = [];
+
+    try {
+      for (let i = 0; i < bulkItems.length; i++) {
+        const item = bulkItems[i];
+        setBulkUploadProgress({ current: i + 1, total: bulkItems.length });
+
+        const submitData = new FormData();
+        submitData.append('name', item.name);
+        submitData.append('price', item.price);
+        if (item.old_price) submitData.append('old_price', item.old_price);
+        submitData.append('category', item.category);
+        submitData.append('unit', item.unit);
+        submitData.append('image', item.file);
+
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          body: submitData
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          uploadedProducts.push(data.product);
+        } else {
+          console.error(`Ürün yükleme hatası (${item.name}):`, data.error);
+        }
+      }
+
+      // Yeni ürünleri ekle
+      setProducts((prev) => [...uploadedProducts, ...prev]);
+
+      // Bellek temizleme
+      bulkItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      setBulkItems([]);
+      setIsModalOpen(false);
+
+      alert(`${uploadedProducts.length} adet ürün başarıyla yüklendi!`);
+    } catch (err) {
+      console.error("Toplu yükleme hatası:", err);
+      alert("Toplu ürünler yüklenirken bir sorun oluştu.");
+    } finally {
+      setBulkUploadProgress(null);
+    }
+  };
 
   // 🚀 GÜNCELLENDİ: Base64 iptal! Gerçek dosyayı alıp sadece önizleme oluşturuyoruz
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,6 +361,10 @@ function UrunlerPage() {
 
   const openModal = (product: Product | null = null) => {
     setSelectedFile(null); // Modal açılırken eski seçili dosyayı temizle
+    setAdminTab('single'); // Varsayılan olarak tek ürün sekmesini aç
+    bulkItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
+    setBulkItems([]);
+    setBulkUploadProgress(null);
     if (product) {
       setEditingProduct(product);
       setFormData({ 
@@ -260,7 +381,7 @@ function UrunlerPage() {
   const filteredProducts = products.filter((product) => {
     const matchesCategory = selectedCategory === 'HEPSİ' || product.category?.toUpperCase() === selectedCategory.toUpperCase();
     const matchesSearch = searchQuery
-      ? product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ? normalizeTurkish(product.name).includes(normalizeTurkish(searchQuery))
       : true;
     return matchesCategory && matchesSearch;
   });
@@ -356,7 +477,12 @@ function UrunlerPage() {
                     )}
                     
                     {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+                      <img 
+                        src={product.image_url} 
+                        alt={product.name} 
+                        onClick={() => setZoomedImage(product.image_url)}
+                        className="w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover:scale-[1.04]" 
+                      />
                     ) : (
                       <div className="w-full h-full bg-[#FBF9F4] flex items-center justify-center text-5xl">🧀</div>
                     )}
@@ -365,7 +491,7 @@ function UrunlerPage() {
                   <div className="p-4 md:p-5 flex-1 flex flex-col justify-between space-y-4">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-[#D4A373] tracking-wider uppercase block">{product.category}</span>
-                      <h3 className="font-bold text-[#3C2F2F] text-sm md:text-base truncate group-hover:text-[#5e0d0f] transition-colors">{product.name}</h3>
+                      <h3 className="font-bold text-[#3C2F2F] text-sm md:text-base break-words group-hover:text-[#5e0d0f] transition-colors">{product.name}</h3>
                       <p className="text-gray-400 text-xs font-medium">1 {product.unit} Fiyatı</p>
                       <div className="flex items-baseline gap-2 pt-2 border-t border-gray-50 mt-2">
                         <span className="text-lg md:text-xl font-extrabold text-[#5e0d0f]">₺{product.price}</span>
@@ -396,25 +522,226 @@ function UrunlerPage() {
               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">✕</button>
             </div>
 
-            <div className="mb-8 p-5 bg-[#FBF9F4] border border-[#D4A373]/30 rounded-2xl">
-              <h4 className="text-sm font-bold text-[#5e0d0f] uppercase tracking-widest mb-3">Kategorileri Yönet</h4>
-              <div className="flex gap-2 mb-3">
-                <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Yeni Kategori Adı..." className="flex-1 bg-white border border-[#D4A373]/20 rounded-xl px-3 text-sm focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]" />
-                <button type="button" onClick={handleAddCategory} className="bg-green-600 text-white px-4 rounded-xl font-bold text-sm">+</button>
+            {/* Sekme Seçimi (Sadece Yeni Ürün Eklerken) */}
+            {!editingProduct && (
+              <div className="flex border-b border-gray-200 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('single')}
+                  className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${
+                    adminTab === 'single'
+                      ? 'border-[#5e0d0f] text-[#5e0d0f]'
+                      : 'border-transparent text-gray-400 hover:text-[#5e0d0f]'
+                  }`}
+                >
+                  Tek Ürün Ekle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('bulk')}
+                  className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${
+                    adminTab === 'bulk'
+                      ? 'border-[#5e0d0f] text-[#5e0d0f]'
+                      : 'border-transparent text-gray-400 hover:text-[#5e0d0f]'
+                  }`}
+                >
+                  Toplu Ürün Ekle
+                </button>
               </div>
-              <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
-                {categories.map((cat, index) => (
-                  <div key={cat} className="flex items-center justify-between bg-white border border-gray-200 p-2 rounded-xl">
-                    <span className="font-bold text-xs text-[#3C2F2F]">{cat}</span>
-                    <div className="flex gap-1">
-                      <button type="button" onClick={() => moveCategory(index, 'up')} disabled={index === 0} className="w-7 h-7 bg-gray-50 rounded text-lg hover:bg-gray-200 disabled:opacity-30">⬆️</button>
-                      <button type="button" onClick={() => moveCategory(index, 'down')} disabled={index === categories.length - 1} className="w-7 h-7 bg-gray-50 rounded text-lg hover:bg-gray-200 disabled:opacity-30">⬇️</button>
-                      <button type="button" onClick={() => handleDeleteCategory(cat)} className="w-7 h-7 bg-red-50 text-red-500 rounded text-xs hover:bg-red-100 font-bold">X</button>
+            )}
+
+            {adminTab === 'bulk' && !editingProduct ? (
+              <form onSubmit={handleBulkSubmit} className="space-y-6">
+                {bulkUploadProgress ? (
+                  <div className="flex flex-col items-center justify-center py-12 bg-[#FBF9F4] rounded-3xl border border-[#D4A373]/30">
+                    <div className="w-12 h-12 border-4 border-[#D4A373]/20 border-t-[#5e0d0f] rounded-full animate-spin mb-4"></div>
+                    <p className="font-bold text-[#5e0d0f]">Ürünler Yükleniyor...</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {bulkUploadProgress.current} / {bulkUploadProgress.total} tamamlandı
+                    </p>
+                    <div className="w-48 bg-gray-200 h-2 rounded-full mt-4 overflow-hidden">
+                      <div 
+                        className="bg-[#5e0d0f] h-full transition-all duration-300"
+                        style={{ width: `${(bulkUploadProgress.current / bulkUploadProgress.total) * 100}%` }}
+                      ></div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                ) : (
+                  <>
+                    <div className="bg-[#F5F0E6] p-5 rounded-2xl border border-[#D4A373]/30 text-xs text-[#5e0d0f] leading-relaxed text-center">
+                      <span className="font-bold block text-sm mb-2">📸 Toplu Ürün Görseli Yükleme</span>
+                      Cihazınızdan birden fazla ürün görseli seçin.<br />
+                      Seçtiğiniz her görsel için ürün detaylarını aşağıda doldurabilirsiniz.
+                    </div>
+
+                    {/* Dosya Seçme Tuşu */}
+                    <div className="bg-gray-50 p-6 rounded-2xl border-2 border-dashed border-[#D4A373]/40 flex flex-col items-center justify-center hover:bg-[#FBF9F4] transition-all cursor-pointer relative">
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*" 
+                        onChange={handleBulkImagesChange} 
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      <span className="text-3xl mb-2">📁</span>
+                      <span className="font-bold text-sm text-[#5e0d0f]">Görselleri Seçmek İçin Tıklayın</span>
+                      <span className="text-xs text-gray-400 mt-1">Sürükleyip bırakabilir veya çoklu seçim yapabilirsiniz</span>
+                    </div>
+
+                    {/* Seçilen Görsellerin Listesi */}
+                    {bulkItems.length > 0 && (
+                      <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 no-scrollbar">
+                        <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                          <span className="font-bold text-xs text-gray-500">SEÇİLEN GÖRSELLER ({bulkItems.length})</span>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              bulkItems.forEach(item => URL.revokeObjectURL(item.previewUrl));
+                              setBulkItems([]);
+                            }} 
+                            className="text-xs text-red-500 hover:underline font-bold"
+                          >
+                            Tümünü Temizle
+                          </button>
+                        </div>
+                        
+                        {bulkItems.map((item, idx) => (
+                          <div key={item.id} className="p-4 bg-[#FBF9F4] border border-gray-200 rounded-2xl relative space-y-4 shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => removeBulkItem(item.id)}
+                              className="absolute top-3 right-3 bg-red-50 hover:bg-red-100 text-red-600 w-8 h-8 rounded-full flex items-center justify-center transition-colors font-bold"
+                              title="Bu resmi çıkart"
+                            >
+                              ✕
+                            </button>
+
+                            <div className="flex gap-4">
+                              <div className="w-20 h-20 relative rounded-xl overflow-hidden border border-gray-200 bg-white flex-shrink-0">
+                                <img src={item.previewUrl} alt="Önizleme" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 flex flex-col justify-center">
+                                <span className="text-[10px] text-gray-400 font-bold block mb-1">GÖRSEL #{idx + 1}</span>
+                                <span className="text-xs text-gray-600 truncate max-w-[200px]">{item.file.name}</span>
+                                <span className="text-[10px] text-gray-400 mt-0.5">{(item.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-[#D4A373] uppercase tracking-wider block mb-1">Ürün Adı</label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={item.name}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, name: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none"
+                                />
+                              </div>
+
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-[#D4A373] uppercase tracking-wider block mb-1">Kategori</label>
+                                <select
+                                  value={item.category}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, category: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none"
+                                >
+                                  {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-[#5e0d0f] uppercase tracking-wider block mb-1">Satış Fiyatı (₺)</label>
+                                <input
+                                  type="number"
+                                  required
+                                  step="0.01"
+                                  value={item.price}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, price: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#5e0d0f] outline-none"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">İndirimsiz Fiyat (₺)</label>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.old_price}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, old_price: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-gray-300 outline-none"
+                                  placeholder="Opsiyonel"
+                                />
+                              </div>
+
+                              <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-[#D4A373] uppercase tracking-wider block mb-1">Birim</label>
+                                <select
+                                  value={item.unit}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, unit: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none"
+                                >
+                                  <option value="kg">Kilogram (kg)</option>
+                                  <option value="Litre">Litre (L)</option>
+                                  <option value="Adet">Adet</option>
+                                  <option value="Paket">Paket</option>
+                                  <option value="Gram">Gram (g)</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="pt-2 flex flex-col gap-2">
+                      <button
+                        type="submit"
+                        disabled={bulkItems.length === 0}
+                        className="w-full bg-[#5e0d0f] text-white px-8 py-3.5 rounded-2xl font-bold hover:bg-[#D4A373] transition-all disabled:opacity-50 disabled:hover:bg-[#5e0d0f] disabled:cursor-not-allowed"
+                      >
+                        {bulkItems.length} Adet Ürünü Ekle
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+            ) : (
+              <>
+                <div className="mb-8 p-5 bg-[#FBF9F4] border border-[#D4A373]/30 rounded-2xl">
+                  <h4 className="text-sm font-bold text-[#5e0d0f] uppercase tracking-widest mb-3">Kategorileri Yönet</h4>
+                  <div className="flex gap-2 mb-3">
+                    <input type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="Yeni Kategori Adı..." className="flex-1 bg-white border border-[#D4A373]/20 rounded-xl px-3 text-sm focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]" />
+                    <button type="button" onClick={handleAddCategory} className="bg-green-600 text-white px-4 rounded-xl font-bold text-sm">+</button>
+                  </div>
+                  <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1 no-scrollbar">
+                    {categories.map((cat, index) => (
+                      <div key={cat} className="flex items-center justify-between bg-white border border-gray-200 p-2 rounded-xl">
+                        <span className="font-bold text-xs text-[#3C2F2F]">{cat}</span>
+                        <div className="flex gap-1">
+                          <button type="button" onClick={() => moveCategory(index, 'up')} disabled={index === 0} className="w-7 h-7 bg-gray-50 rounded text-lg hover:bg-gray-200 disabled:opacity-30">⬆️</button>
+                          <button type="button" onClick={() => moveCategory(index, 'down')} disabled={index === categories.length - 1} className="w-7 h-7 bg-gray-50 rounded text-lg hover:bg-gray-200 disabled:opacity-30">⬇️</button>
+                          <button type="button" onClick={() => handleDeleteCategory(cat)} className="w-7 h-7 bg-red-50 text-red-500 rounded text-xs hover:bg-red-100 font-bold">X</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -465,6 +792,33 @@ function UrunlerPage() {
                 )}
               </div>
             </form>
+          </>
+        )}
+          </div>
+        </div>
+      )}
+
+      {zoomedImage && (
+        <div 
+          className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100] flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-300"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button 
+            onClick={() => setZoomedImage(null)} 
+            className="absolute top-6 right-6 text-white/70 hover:text-white text-4xl font-light p-2 transition-colors focus:outline-none z-10"
+            aria-label="Kapat"
+          >
+            ✕
+          </button>
+          <div 
+            className="relative max-w-4xl max-h-[85vh] w-full flex items-center justify-center animate-in zoom-in-95 duration-300 ease-out"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={zoomedImage} 
+              alt="Büyütülmüş ürün görseli" 
+              className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
           </div>
         </div>
       )}

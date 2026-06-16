@@ -43,6 +43,47 @@ export async function POST(request: Request) {
   }
 
   try {
+    const contentType = request.headers.get('content-type') || '';
+
+    // EĞER İSTEK JSON İSE (TOPLU ÜRÜN EKLEME)
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      const productsToAdd = Array.isArray(body) ? body : (body.products && Array.isArray(body.products) ? body.products : null);
+      if (!productsToAdd) {
+        return NextResponse.json({ error: 'Geçersiz veri biçimi. Ürün dizisi bekleniyor.' }, { status: 400 });
+      }
+
+      // Validasyon: Tüm ürünleri kontrol et
+      for (const prod of productsToAdd) {
+        if (!prod.name || prod.price === undefined || prod.price === null) {
+          return NextResponse.json({ error: 'Tüm ürünlerde isim ve fiyat alanları zorunludur.' }, { status: 400 });
+        }
+      }
+
+      const insertedProducts = [];
+      const maxOrderRes = await query('SELECT MAX(sort_order) as max_order FROM products');
+      let currentOrder = maxOrderRes.rows[0]?.max_order || 0;
+
+      for (const prod of productsToAdd) {
+        currentOrder += 1;
+        const name = prod.name;
+        const price = parseFloat(prod.price);
+        const old_price = prod.old_price ? parseFloat(prod.old_price) : null;
+        const category = prod.category || 'PEYNİR';
+        const unit = prod.unit || 'kg';
+        const image_url = prod.image_url || '/default.png';
+
+        const res = await query(
+          'INSERT INTO products (name, price, old_price, image_url, category, unit, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+          [name.trim(), price, old_price, image_url, category, unit, currentOrder]
+        );
+        insertedProducts.push(res.rows[0]);
+      }
+
+      return NextResponse.json({ success: true, products: insertedProducts });
+    }
+
+    // TEK ÜRÜN EKLEME (FORM DATA)
     const formData = await request.formData();
     
     const name = formData.get('name') as string;

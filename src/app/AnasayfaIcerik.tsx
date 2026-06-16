@@ -139,7 +139,6 @@ export default function AnasayfaIcerik() {
         body: JSON.stringify({ category_name: selectedCategory, image_url: modalImageUrl })
       });
       if (res.ok) {
-        alert('Görsel güncellendi ve eskisi sunucudan temizlendi! ✅');
         setIsCategoryModalOpen(false);
         fetchCategoryImages();
       }

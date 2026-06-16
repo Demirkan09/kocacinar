@@ -8,6 +8,25 @@ export async function POST(request: Request) {
   try {
     const { cartItems, totalPrice, shippingFee, buyerInfo } = await request.json();
 
+    // Site ayarlarını al
+    const settingsRes = await query('SELECT key, value FROM site_settings');
+    const settings: Record<string, string> = {};
+    settingsRes.rows.forEach(row => {
+      settings[row.key] = row.value;
+    });
+    const minOrderAmount = Number(settings.min_order_amount || '150');
+    const baseShippingFee = Number(settings.shipping_fee || '75');
+    const freeShippingThreshold = Number(settings.free_shipping_threshold || '2000');
+
+    // Sepet tutarını hesapla ve doğrula
+    const subtotal = cartItems.reduce((total: number, item: any) => total + (Number(item.price) * Number(item.quantity)), 0);
+    if (subtotal < minOrderAmount) {
+      return NextResponse.json({ error: `Sipariş verebilmek için minimum sepet tutarı ₺${minOrderAmount} olmalıdır.` }, { status: 400 });
+    }
+
+    const finalShippingFee = subtotal >= freeShippingThreshold ? 0 : baseShippingFee;
+    const finalTotalPrice = subtotal + finalShippingFee;
+
     // 1. Kullanıcı ID'sini Çekiyoruz (Siparişi doğru kişiye bağlamak için)
     const cookieStore = await cookies();
     const token = cookieStore.get('kocacinar_session')?.value;
@@ -47,13 +66,13 @@ export async function POST(request: Request) {
       quantity: item.quantity 
     }));
 
-    if (shippingFee > 0) {
+    if (finalShippingFee > 0) {
       basketItems.push({
         id: "SHIPPING",
         name: "Kargo Ücreti",
         category1: "Kargo",
         itemType: Iyzipay.BASKET_ITEM_TYPE.VIRTUAL,
-        price: shippingFee.toFixed(2),
+        price: finalShippingFee.toFixed(2),
       });
     }
 
@@ -63,8 +82,8 @@ export async function POST(request: Request) {
     const requestData = {
       locale: Iyzipay.LOCALE.TR,
       conversationId: conversationId,
-      price: totalPrice.toFixed(2),
-      paidPrice: totalPrice.toFixed(2),
+      price: finalTotalPrice.toFixed(2),
+      paidPrice: finalTotalPrice.toFixed(2),
       currency: Iyzipay.CURRENCY.TRY,
       basketId: orderNo, // 🛠️ Önemli: Bizim sipariş kodumuzu İyzico'ya gönderiyoruz
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
@@ -119,11 +138,10 @@ export async function POST(request: Request) {
     
     // 3. EĞER IYZİCO BAŞARILI CEVAP VERDİYSE DB'YE KAYDET
     if (result.status === 'success') {
-      const subtotal = Number(totalPrice) - Number(shippingFee);
       await query(
         `INSERT INTO orders (order_no, user_id, buyer_name, buyer_phone, shipping_address, items, subtotal, shipping_fee, total_amount, status) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ODEME_BEKLIYOR')`,
-        [orderNo, userId, fullName, buyerInfo.phone, buyerInfo.address, JSON.stringify(cartItems), subtotal, shippingFee, totalPrice]
+        [orderNo, userId, fullName, buyerInfo.phone, buyerInfo.address, JSON.stringify(cartItems), subtotal, finalShippingFee, finalTotalPrice]
       );
       
       return NextResponse.json(result);

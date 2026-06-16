@@ -6,10 +6,40 @@ import { useState, useEffect } from 'react';
 export default function SepetPage() {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
   
+  const [settings, setSettings] = useState({
+    min_order_amount: 150,
+    shipping_fee: 75,
+    free_shipping_threshold: 2000
+  });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSettings({
+            min_order_amount: Number(data.min_order_amount || 150),
+            shipping_fee: Number(data.shipping_fee || 75),
+            free_shipping_threshold: Number(data.free_shipping_threshold || 2000)
+          });
+        }
+      } catch (err) {
+        console.error('Ayarlar yüklenemedi:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   // Toplam sepet tutarını hesaplama
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shippingFee = subtotal >= 2000 || subtotal === 0 ? 0 : 75; // 2000 TL üzeri kargo bedava kuralı 
+  const freeShippingThreshold = Number(settings.free_shipping_threshold);
+  const baseShippingFee = Number(settings.shipping_fee);
+  const minOrderAmount = Number(settings.min_order_amount);
+
+  const shippingFee = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : baseShippingFee;
   const totalAmount = subtotal + shippingFee;
+  const isBelowMinOrder = subtotal < minOrderAmount && subtotal > 0;
 
   // Ödeme yapacak müşterinin bilgileri için state yapısı
   const [buyerInfo, setBuyerInfo] = useState({
@@ -273,7 +303,7 @@ if (profile.address) {
 
                   {shippingFee > 0 && (
                     <p className="text-[11px] text-amber-600 font-medium bg-amber-50 p-2.5 rounded-xl border border-amber-100">
-                      💡 Siparişinize <span className="font-bold">₺{2000 - subtotal}</span> tutarında daha ürün eklemeniz durumunda kargo ücreti alınmayacaktır.
+                      💡 Siparişinize <span className="font-bold">₺{freeShippingThreshold - subtotal}</span> tutarında daha ürün eklemeniz durumunda kargo ücreti alınmayacaktır.
                     </p>
                   )}
 
@@ -351,6 +381,14 @@ if (profile.address) {
               {/* AKSİYON BUTONLARI GRUBU */}
               <div className="flex flex-col gap-3 pt-2">
                 
+                {/* ⚠️ MİNİMUM SİPARİŞ TUTARI UYARISI */}
+                {isBelowMinOrder && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-xs font-bold text-left animate-in fade-in duration-300">
+                    <span className="text-base mr-1">⚠️</span>
+                    Sipariş verebilmek için minimum sepet tutarı <strong>₺{minOrderAmount}</strong> olmalıdır. Siparişinizi tamamlamak için sepetinize <strong>₺{minOrderAmount - subtotal}</strong> tutarında daha ürün eklemelisiniz.
+                  </div>
+                )}
+
                 {/* 🔒 ÜYE GİRİŞİ KONTROLÜ VE UYARI BALONCUĞU */}
                 {!isLoadingProfile && !buyerInfo.email && (
                   <div className="bg-[#5e0d0f]/5 border border-[#5e0d0f]/20 rounded-2xl p-4 flex gap-3 items-start animate-in fade-in duration-300">
@@ -366,12 +404,12 @@ if (profile.address) {
                   </div>
                 )}
 
-                {/* ONLINE ÖDEME BUTONU (Üye girişi yapılmadıysa kilitlenir ve rengi soluklaşır) */}
+                {/* ONLINE ÖDEME BUTONU (Üye girişi yapılmadıysa veya minimum sepet limitinin altındaysa kilitlenir) */}
                 <button
                   onClick={handleOnlineCheckout}
-                  disabled={isProcessing || isLoadingProfile || !buyerInfo.email}
+                  disabled={isProcessing || isLoadingProfile || !buyerInfo.email || isBelowMinOrder}
                   className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm ${
-                    buyerInfo.email && !isProcessing
+                    buyerInfo.email && !isProcessing && !isBelowMinOrder
                       ? 'bg-[#5e0d0f] text-white hover:bg-[#3d080a] active:scale-[0.99]'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none border border-gray-300/30'
                   }`}
@@ -396,11 +434,11 @@ if (profile.address) {
                 </div>
                 
 
-                {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir) */}
+                {/* WHATSAPP SİPARİŞ BUTONU (Ziyaretçiler için her zaman aktiftir ama minimum limit altındaysa kilitlenir) */}
                 <button 
                   onClick={handleWhatsAppCheckout}
-                  disabled={isLoadingProfile}
-                  className="w-full bg-[#25D366] text-white font-bold py-3.5 px-4 rounded-2xl hover:bg-[#20C25A] transition-all shadow-md text-center active:scale-95 flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  disabled={isLoadingProfile || isBelowMinOrder}
+                  className="w-full bg-[#25D366] text-white font-bold py-3.5 px-4 rounded-2xl hover:bg-[#20C25A] transition-all shadow-md text-center active:scale-95 flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                     <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.372 5.378 0 12.001 0c3.21 0 6.225 1.251 8.5 3.522 2.273 2.27 3.524 5.286 3.522 8.501-.004 6.63-5.379 12-12.004 12-2.003 0-3.975-.497-5.732-1.44L0 24zm6.59-4.846c1.6.95 3.488 1.449 5.411 1.451 5.428 0 9.85-4.417 9.854-9.848.002-2.63-1.023-5.101-2.884-6.963C17.11 1.932 14.634.928 12.001.928c-5.43 0-9.852 4.418-9.855 9.849-.002 1.984.518 3.922 1.507 5.64l-.386 1.41.414-.108 1.545-.405z" />

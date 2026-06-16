@@ -35,6 +35,128 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Site Ayarları State'leri
+  const [minOrderSetting, setMinOrderSetting] = useState('150');
+  const [shippingFeeSetting, setShippingFeeSetting] = useState('75');
+  const [freeShippingSetting, setFreeShippingSetting] = useState('2000');
+  
+  // Duyurular State'leri
+  const [announcementsList, setAnnouncementsList] = useState<any[]>([]);
+  const [newAnnouncementText, setNewAnnouncementText] = useState('');
+
+  const loadSiteSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setMinOrderSetting(data.min_order_amount || '150');
+        setShippingFeeSetting(data.shipping_fee || '75');
+        setFreeShippingSetting(data.free_shipping_threshold || '2000');
+      }
+      
+      const annRes = await fetch('/api/announcements');
+      if (annRes.ok) {
+        const annData = await annRes.json();
+        setAnnouncementsList(annData);
+      }
+    } catch (err) {
+      console.error('Ayarlar yüklenemedi:', err);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          min_order_amount: minOrderSetting,
+          shipping_fee: shippingFeeSetting,
+          free_shipping_threshold: freeShippingSetting
+        })
+      });
+      if (res.ok) {
+        setToastMessage('Site ayarları başarıyla güncellendi ✅');
+        setShowToast(true);
+      } else {
+        setToastMessage('Ayarlar güncellenemedi ❌');
+        setShowToast(true);
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    }
+  };
+
+  const handleAddAnnouncement = async () => {
+    if (!newAnnouncementText.trim()) return;
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newAnnouncementText })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAnnouncementsList(prev => [...prev, data.announcement]);
+        setNewAnnouncementText('');
+        setToastMessage('Yeni duyuru başarıyla eklendi ✅');
+        setShowToast(true);
+      } else {
+        setToastMessage(data.error || 'Duyuru eklenemedi ❌');
+        setShowToast(true);
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    }
+  };
+
+  const handleUpdateAnnouncement = async (id: number, text: string) => {
+    if (!text.trim()) return;
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, text })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAnnouncementsList(prev => prev.map(item => item.id === id ? data.announcement : item));
+        setToastMessage('Duyuru başarıyla güncellendi ✅');
+        setShowToast(true);
+      } else {
+        setToastMessage(data.error || 'Güncelleme başarısız ❌');
+        setShowToast(true);
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    }
+  };
+
+  const handleDeleteAnnouncement = async (id: number) => {
+    if (!confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) return;
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setAnnouncementsList(prev => prev.filter(item => item.id !== id));
+        setToastMessage('Duyuru başarıyla silindi ✅');
+        setShowToast(true);
+      } else {
+        setToastMessage('Duyuru silinemedi ❌');
+        setShowToast(true);
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    }
+  };
+
   // URL'den gelen e-posta doğrulama parametresini yakalama
   useEffect(() => {
     const verified = searchParams.get('verified');
@@ -94,7 +216,12 @@ const loadOrders = async (isAdmin: boolean) => {
             }
           }
 
-          loadOrders(data.user.role === 'admin');
+          if (data.user.role === 'admin') {
+            loadOrders(true);
+            loadSiteSettings();
+          } else {
+            loadOrders(false);
+          }
 
         } else {
           router.push('/login');
@@ -327,6 +454,9 @@ const loadOrders = async (isAdmin: boolean) => {
                 </button>
                 <button onClick={() => setActiveTab('gecmis_siparisler')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'gecmis_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                   <span className="text-lg">📚</span> Geçmiş Siparişler
+                </button>
+                <button onClick={() => setActiveTab('site_ayarlari')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'site_ayarlari' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
+                  <span className="text-lg">⚙️</span> Site Ayarları
                 </button>
               </>
             )}
@@ -722,6 +852,132 @@ const loadOrders = async (isAdmin: boolean) => {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ================= SİTE AYARLARI TABI (ADMİN) ================= */}
+          {activeTab === 'site_ayarlari' && isAdmin && (
+            <div className="animate-in fade-in duration-500 space-y-8">
+              <div>
+                <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-2">⚙️ Genel Site Ayarları</h3>
+                <p className="text-gray-500 text-sm">Alışveriş limitlerini, kargo ücretlerini ve üst banttaki duyuruları buradan yönetebilirsiniz.</p>
+              </div>
+
+              {/* 1. Limitler ve Ücretler Kartı */}
+              <div className="bg-[#FBF9F4] p-6 md:p-8 rounded-3xl border border-[#D4A373]/30 shadow-sm space-y-6">
+                <h4 className="font-bold text-lg text-[#3C2F2F] border-b border-[#D4A373]/20 pb-3 flex items-center gap-2">
+                  <span>💳</span> Sipariş & Kargo Kuralları
+                </h4>
+                
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block">Minimum Sipariş Tutarı (₺)</label>
+                    <input 
+                      type="number" 
+                      value={minOrderSetting} 
+                      onChange={(e) => setMinOrderSetting(e.target.value)} 
+                      className="w-full bg-white border border-[#D4A373]/20 rounded-2xl py-3.5 px-4 text-[#3C2F2F] font-bold focus:ring-2 focus:ring-[#5e0d0f] outline-none transition-all shadow-inner" 
+                      placeholder="Örn: 150"
+                    />
+                    <span className="text-[10px] text-gray-400 block px-1">Müşteriler bu tutarın altında sipariş veremez.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block">Kargo Ücreti (₺)</label>
+                    <input 
+                      type="number" 
+                      value={shippingFeeSetting} 
+                      onChange={(e) => setShippingFeeSetting(e.target.value)} 
+                      className="w-full bg-white border border-[#D4A373]/20 rounded-2xl py-3.5 px-4 text-[#3C2F2F] font-bold focus:ring-2 focus:ring-[#5e0d0f] outline-none transition-all shadow-inner" 
+                      placeholder="Örn: 75"
+                    />
+                    <span className="text-[10px] text-gray-400 block px-1">Eşik değerinin altında kargo ücreti olarak yansıtılır.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block">Ücretsiz Kargo Sınırı (₺)</label>
+                    <input 
+                      type="number" 
+                      value={freeShippingSetting} 
+                      onChange={(e) => setFreeShippingSetting(e.target.value)} 
+                      className="w-full bg-white border border-[#D4A373]/20 rounded-2xl py-3.5 px-4 text-[#3C2F2F] font-bold focus:ring-2 focus:ring-[#5e0d0f] outline-none transition-all shadow-inner" 
+                      placeholder="Örn: 2000"
+                    />
+                    <span className="text-[10px] text-gray-400 block px-1">Bu tutar ve üzeri alışverişlerde kargo ücretsiz olur.</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={handleSaveSettings} 
+                    className="bg-[#5e0d0f] hover:bg-[#D4A373] text-white px-8 py-3.5 rounded-2xl font-bold shadow-md hover:shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2"
+                  >
+                    Ayarları Kaydet ✓
+                  </button>
+                </div>
+              </div>
+
+              {/* 2. Announcement / Duyuru Yönetimi Kartı */}
+              <div className="bg-[#FBF9F4] p-6 md:p-8 rounded-3xl border border-[#D4A373]/30 shadow-sm space-y-6">
+                <h4 className="font-bold text-lg text-[#3C2F2F] border-b border-[#D4A373]/20 pb-3 flex items-center gap-2">
+                  <span>📢</span> Üst Kayan Duyuru Metinleri
+                </h4>
+
+                {/* Kayan Duyuruları Listele */}
+                <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1 no-scrollbar">
+                  {announcementsList.length === 0 ? (
+                    <p className="text-gray-400 text-xs text-center py-4 font-medium">Henüz kayıtlı bir duyuru bulunmuyor. Eklemek için aşağıdaki alanı kullanın.</p>
+                  ) : (
+                    announcementsList.map((ann, idx) => (
+                      <div key={ann.id} className="flex gap-2 items-center bg-white p-3 rounded-2xl border border-gray-100 shadow-sm group">
+                        <span className="text-xs text-gray-400 font-bold w-6 text-center">#{idx + 1}</span>
+                        <input 
+                          type="text" 
+                          defaultValue={ann.text} 
+                          id={`ann-text-${ann.id}`}
+                          className="flex-1 bg-transparent border-0 text-sm font-bold text-[#3C2F2F] outline-none focus:ring-1 focus:ring-[#D4A373] rounded-xl px-2 py-1 transition-all"
+                        />
+                        <button 
+                          onClick={() => {
+                            const val = (document.getElementById(`ann-text-${ann.id}`) as HTMLInputElement).value;
+                            handleUpdateAnnouncement(ann.id, val);
+                          }}
+                          className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                        >
+                          Kaydet
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteAnnouncement(ann.id)}
+                          className="bg-red-50 text-red-600 hover:bg-red-100 w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm transition-all"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Yeni Duyuru Ekleme Bölümü */}
+                <div className="pt-4 border-t border-[#D4A373]/10">
+                  <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-2">Yeni Duyuru Metni Ekle</label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newAnnouncementText} 
+                      onChange={(e) => setNewAnnouncementText(e.target.value)} 
+                      placeholder="Örn: 2000 TL ve Üzeri Alışverişlerde Ücretsiz Kargo"
+                      className="flex-1 bg-white border border-[#D4A373]/20 rounded-2xl py-3.5 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#5e0d0f] outline-none transition-all shadow-inner font-medium"
+                    />
+                    <button 
+                      onClick={handleAddAnnouncement}
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 rounded-2xl text-sm transition-all active:scale-95 shadow-sm flex items-center gap-1 whitespace-nowrap"
+                    >
+                      <span className="text-base">+</span> Ekle
+                    </button>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
 

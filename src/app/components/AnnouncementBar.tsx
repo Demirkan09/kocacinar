@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 
-const announcements = [
+const defaultAnnouncements = [
   " Türkiye'nin En Seçkin Şarküteri Lezzetleri",
   " 2000 TL ve Üzeri Alışverişlerde Ücretsiz Kargo",
   " %100 Doğal ve Katkısız Üretim Garantisi",
@@ -13,14 +13,30 @@ const announcements = [
 
 export default function AnnouncementBar() {
   const [mounted, setMounted] = useState(false);
+  const [announcements, setAnnouncements] = useState<string[]>([]);
 
-  // Sayfa tarayıcıda yüklendiği an mounted true olur
   useEffect(() => {
     setMounted(true);
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await fetch('/api/announcements');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setAnnouncements(data.map((item: any) => item.text));
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Duyurular yüklenemedi:', err);
+      }
+      setAnnouncements(defaultAnnouncements);
+    };
+    fetchAnnouncements();
   }, []);
 
   // Sunucu tarafında render edilmesini engelleyerek hydration hatasını kökten çözüyoruz
-  if (!mounted) return null;
+  if (!mounted || announcements.length === 0) return null;
 
   return (
     <div 

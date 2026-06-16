@@ -172,7 +172,8 @@ export default function AnasayfaIcerik() {
         }
         setSelectedFile(null);
       } else {
-        alert("Vitrin kategorisi kaydedilirken hata oluştu.");
+        const errJson = await res.json().catch(() => ({}));
+        alert(`Vitrin kategorisi kaydedilirken hata oluştu: ${errJson.error || res.statusText}`);
       }
     } catch (err: any) {
       console.error(err);

@@ -40,6 +40,7 @@ export default function AnasayfaIcerik() {
   const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Sürükle-Bırak State Yapısı
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -116,9 +117,8 @@ export default function AnasayfaIcerik() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setModalImageUrl(reader.result as string);
-      reader.readAsDataURL(file);
+      setSelectedFile(file);
+      setModalImageUrl(URL.createObjectURL(file));
     }
   };
 
@@ -134,25 +134,21 @@ export default function AnasayfaIcerik() {
       const formattedName = editCategoryName.trim().toUpperCase();
 
       // 1. Görsel varsa kaydet
-      if (modalImageUrl) {
-        if (oldImageUrlOnServer && oldImageUrlOnServer !== modalImageUrl && oldImageUrlOnServer.startsWith('/uploads/')) {
-          try {
-            await fetch('/api/upload/delete', {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ filePath: oldImageUrlOnServer })
-            });
-          } catch (e) { console.error(e); }
-        }
+      const submitData = new FormData();
+      submitData.append('category_name', formattedName);
+      
+      if (selectedFile) {
+        submitData.append('image', selectedFile);
+      } else {
+        submitData.append('image_url', modalImageUrl);
+      }
 
-        const imgRes = await fetch('/api/categories/images', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ category_name: formattedName, image_url: modalImageUrl })
-        });
-        if (!imgRes.ok) {
-          throw new Error("Görsel kaydedilirken hata oluştu.");
-        }
+      const imgRes = await fetch('/api/categories/images', {
+        method: 'POST',
+        body: submitData
+      });
+      if (!imgRes.ok) {
+        throw new Error("Görsel kaydedilirken hata oluştu.");
       }
 
       // 2. Vitrin kategorileri listesini güncelle ve kaydet
@@ -169,6 +165,12 @@ export default function AnasayfaIcerik() {
         setHomepageCategories(newCats);
         setIsCategoryModalOpen(false);
         fetchCategoryImages();
+        
+        // Geçici blob URL'sini temizle
+        if (modalImageUrl && modalImageUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(modalImageUrl);
+        }
+        setSelectedFile(null);
       } else {
         alert("Vitrin kategorisi kaydedilirken hata oluştu.");
       }
@@ -333,6 +335,7 @@ export default function AnasayfaIcerik() {
                     setSelectedCategory(cat);
                     setModalImageUrl(currentImg);
                     setOldImageUrlOnServer(currentImg);
+                    setSelectedFile(null);
                     setIsCategoryModalOpen(true);
                   } else {
                     window.location.href = `/urunler?kategori=${encodeURIComponent(cat)}`;
@@ -484,7 +487,13 @@ export default function AnasayfaIcerik() {
             <div className="flex gap-2 justify-end pt-3 border-t">
               <button onClick={() => { if (confirm('Kaldırmak istediğinize emin misiniz?')) setModalImageUrl(''); }} className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-colors text-sm font-bold flex items-center gap-1"><HiTrash size={18} /> Kaldır</button>
               <div className="flex gap-2 ml-auto">
-                <button onClick={() => setIsCategoryModalOpen(false)} className="px-4 py-2.5 rounded-xl font-bold text-xs text-gray-500 hover:bg-gray-100">İptal</button>
+                <button onClick={() => {
+                  if (modalImageUrl && modalImageUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(modalImageUrl);
+                  }
+                  setSelectedFile(null);
+                  setIsCategoryModalOpen(false);
+                }} className="px-4 py-2.5 rounded-xl font-bold text-xs text-gray-500 hover:bg-gray-100">İptal</button>
                 <button onClick={handleSaveCategory} className="bg-[#5e0d0f] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#D4A373]">Değişiklikleri Kaydet</button>
               </div>
             </div>

@@ -38,6 +38,8 @@ export default function AnasayfaIcerik() {
   const [modalImageUrl, setModalImageUrl] = useState('');
   const [oldImageUrlOnServer, setOldImageUrlOnServer] = useState('');
   const [tempSelectedCategories, setTempSelectedCategories] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
 
   // Sürükle-Bırak State Yapısı
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -120,29 +122,60 @@ export default function AnasayfaIcerik() {
     }
   };
 
-  // Kategori Görselini Kaydetme ve Eski Görseli Bilgisayardan Uçurma
-  const handleSaveCategoryImage = async () => {
+  // Kategori Bilgilerini Kaydetme ve Eski Görseli Bilgisayardan Uçurma
+  const handleSaveCategory = async () => {
+    if (!editCategoryName.trim()) {
+      alert("Kategori adı boş olamaz!");
+      return;
+    }
+    if (editingIndex === null) return;
+
     try {
-      if (oldImageUrlOnServer && oldImageUrlOnServer !== modalImageUrl && oldImageUrlOnServer.startsWith('/uploads/')) {
-        try {
-          await fetch('/api/upload/delete', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filePath: oldImageUrlOnServer })
-          });
-        } catch (e) { console.error(e); }
+      const formattedName = editCategoryName.trim().toUpperCase();
+
+      // 1. Görsel varsa kaydet
+      if (modalImageUrl) {
+        if (oldImageUrlOnServer && oldImageUrlOnServer !== modalImageUrl && oldImageUrlOnServer.startsWith('/uploads/')) {
+          try {
+            await fetch('/api/upload/delete', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ filePath: oldImageUrlOnServer })
+            });
+          } catch (e) { console.error(e); }
+        }
+
+        const imgRes = await fetch('/api/categories/images', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ category_name: formattedName, image_url: modalImageUrl })
+        });
+        if (!imgRes.ok) {
+          throw new Error("Görsel kaydedilirken hata oluştu.");
+        }
       }
 
-      const res = await fetch('/api/categories/images', {
+      // 2. Vitrin kategorileri listesini güncelle ve kaydet
+      const newCats = [...displayCategories];
+      newCats[editingIndex] = formattedName;
+
+      const res = await fetch('/api/categories/homepage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category_name: selectedCategory, image_url: modalImageUrl })
+        body: JSON.stringify({ categories: newCats })
       });
+
       if (res.ok) {
+        setHomepageCategories(newCats);
         setIsCategoryModalOpen(false);
         fetchCategoryImages();
+      } else {
+        alert("Vitrin kategorisi kaydedilirken hata oluştu.");
       }
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Bir hata oluştu.");
+    }
   };
 
   // 5 Kategori Seçimini Set Etme
@@ -221,7 +254,15 @@ export default function AnasayfaIcerik() {
     }
   };
 
-  const displayCategories = homepageCategories.length === 5 ? homepageCategories : allDbCategories.slice(0, 5);
+  const getDisplayCategories = () => {
+    const list = [...homepageCategories];
+    while (list.length < 5) {
+      const fallbackCat = allDbCategories[list.length] || `KATEGORİ ${list.length + 1}`;
+      list.push(fallbackCat);
+    }
+    return list;
+  };
+  const displayCategories = getDisplayCategories();
 
   return (
     <main className="min-h-screen bg-[#F5F0E6] text-[#3C2F2F] selection:bg-[#5e0d0f] selection:text-white overflow-hidden">
@@ -277,27 +318,18 @@ export default function AnasayfaIcerik() {
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#5e0d0f]">Kategorilere Göz Atın</h2>
             <div className="w-12 h-1 bg-[#D4A373] mt-3 rounded-full mx-auto sm:mx-0"></div>
           </div>
-          {isAdmin && (
-            <button 
-              onClick={() => {
-                setTempSelectedCategories(homepageCategories);
-                setIsSelectorModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 bg-[#5e0d0f] hover:bg-[#D4A373] text-white text-xs font-bold px-5 py-3 rounded-xl shadow-md transition-all active:scale-95"
-            >
-              <HiOutlineAdjustmentsHorizontal size={16} /> Vitrin Kategorilerini Ayarla (5 Adet)
-            </button>
-          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {displayCategories.map((cat) => {
+          {displayCategories.map((cat, idx) => {
             const currentImg = categoryImages[cat.toUpperCase()] || '';
             return (
               <div 
                 key={cat}
                 onClick={() => {
                   if (isAdmin) {
+                    setEditingIndex(idx);
+                    setEditCategoryName(cat);
                     setSelectedCategory(cat);
                     setModalImageUrl(currentImg);
                     setOldImageUrlOnServer(currentImg);
@@ -419,45 +451,25 @@ export default function AnasayfaIcerik() {
         </div>
       </section>
 
-      {/* === MODAL 1: KATEGORİ SEÇİCİ === */}
-      {isSelectorModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-[28px] p-6 shadow-2xl border border-[#D4A373]/20 flex flex-col gap-4 max-h-[85vh] overflow-y-auto no-scrollbar">
-            <div>
-              <h3 className="text-xl font-extrabold text-[#5e0d0f] tracking-wide">Vitrin Kategorilerini Seç</h3>
-              <p className="text-xs text-gray-400 font-bold mt-1">Ana sayfada listelenmesini istediğin <span className="text-[#5e0d0f]">tam 5 kategoriyi</span> işaretle.</p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 my-2">
-              {allDbCategories.map((cat) => {
-                const isSelected = tempSelectedCategories.includes(cat);
-                return (
-                  <button
-                    key={cat} type="button" onClick={() => toggleTempCategory(cat)}
-                    className={`p-3 rounded-xl border text-xs font-bold transition-all text-left flex items-center justify-between ${isSelected ? 'bg-[#5e0d0f] text-white border-[#5e0d0f]' : 'bg-gray-50 text-[#3C2F2F] border-gray-200 hover:bg-gray-100'}`}
-                  >
-                    <span>{cat}</span>
-                    {isSelected && <span className="bg-white text-[#5e0d0f] w-5 h-5 rounded-full flex items-center justify-center text-[10px]">✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-xs font-bold text-gray-500 bg-[#F5F0E6] p-3 rounded-xl border border-[#D4A373]/20">Seçilen Adet: <span className="text-[#5e0d0f] font-extrabold">{tempSelectedCategories.length} / 5</span></div>
-            <div className="flex gap-2 justify-end pt-3 border-t">
-              <button onClick={() => setIsSelectorModalOpen(false)} className="px-4 py-2.5 rounded-xl font-bold text-xs text-gray-500 hover:bg-gray-100">İptal</button>
-              <button onClick={handleSaveHomepageCategories} className="bg-[#5e0d0f] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#D4A373] shadow-md transition-all">Kategorileri Kilitle 🔒</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* === MODAL 2: GÖRSEL DÜZENLEME === */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[28px] p-6 shadow-2xl border border-[#D4A373]/20 flex flex-col gap-4">
             <div>
-              <h3 className="text-lg font-extrabold text-[#5e0d0f] uppercase tracking-wide">Kapak Görseli Düzenle</h3>
-              <p className="text-xs text-gray-400 font-bold">Kategori: <span className="text-[#3C2F2F]">{selectedCategory}</span></p>
+              <h3 className="text-lg font-extrabold text-[#5e0d0f] uppercase tracking-wide">Vitrin Kategorisini Düzenle</h3>
             </div>
+            
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kategori Adı</label>
+              <input 
+                type="text" 
+                placeholder="Örn: PEYNİRLER" 
+                value={editCategoryName} 
+                onChange={(e) => setEditCategoryName(e.target.value.toUpperCase())} 
+                className="w-full border-2 border-gray-100 p-3 rounded-xl text-xs font-bold text-[#3C2F2F] outline-none focus:border-[#D4A373]" 
+              />
+            </div>
+
             <div className="h-44 w-full bg-gray-50 border rounded-2xl overflow-hidden relative flex items-center justify-center">
               {modalImageUrl ? <img src={modalImageUrl} alt="Önizleme" className="w-full h-full object-cover" /> : <span className="text-xs text-gray-400 font-bold">Resim Seçilmedi</span>}
             </div>
@@ -473,7 +485,7 @@ export default function AnasayfaIcerik() {
               <button onClick={() => { if (confirm('Kaldırmak istediğinize emin misiniz?')) setModalImageUrl(''); }} className="text-red-500 hover:bg-red-50 p-2.5 rounded-xl transition-colors text-sm font-bold flex items-center gap-1"><HiTrash size={18} /> Kaldır</button>
               <div className="flex gap-2 ml-auto">
                 <button onClick={() => setIsCategoryModalOpen(false)} className="px-4 py-2.5 rounded-xl font-bold text-xs text-gray-500 hover:bg-gray-100">İptal</button>
-                <button onClick={handleSaveCategoryImage} className="bg-[#5e0d0f] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#D4A373]">Değişiklikleri Kaydet</button>
+                <button onClick={handleSaveCategory} className="bg-[#5e0d0f] text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-[#D4A373]">Değişiklikleri Kaydet</button>
               </div>
             </div>
           </div>

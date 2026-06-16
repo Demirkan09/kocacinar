@@ -44,6 +44,9 @@ function ProfileContent() {
   const [announcementsList, setAnnouncementsList] = useState<any[]>([]);
   const [newAnnouncementText, setNewAnnouncementText] = useState('');
 
+  // Geçmiş Sipariş Detay State'i
+  const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+
   const loadSiteSettings = async () => {
     try {
       const res = await fetch('/api/settings');
@@ -238,6 +241,14 @@ const loadOrders = async (isAdmin: boolean) => {
 
   // Kişisel Bilgileri Güncelleme
   const handleSaveProfile = async () => {
+    if (phone) {
+      const phoneRegex = /^5\d{9}$/;
+      if (!phoneRegex.test(phone)) {
+        setToastMessage('Lütfen geçerli bir telefon numarası giriniz (5XXXXXXXXX) ⚠️');
+        setShowToast(true);
+        return;
+      }
+    }
     try {
       const res = await fetch('/api/auth/update-profile', {
         method: 'PUT',
@@ -503,7 +514,19 @@ const loadOrders = async (isAdmin: boolean) => {
                   </label>
                   <div className="relative">
                     <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">+90</span>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(5XX) XXX XX XX" className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-4 pl-16 pr-5 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] transition-all outline-none" />
+                    <input 
+                      type="tel" 
+                      value={phone} 
+                      maxLength={10}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) {
+                          setPhone(val);
+                        }
+                      }} 
+                      placeholder="5XX XXX XX XX" 
+                      className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-4 pl-16 pr-5 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] transition-all outline-none" 
+                    />
                   </div>
                 </div>
               </div>
@@ -830,7 +853,12 @@ const loadOrders = async (isAdmin: boolean) => {
                     <tbody className="divide-y divide-gray-100">
                       {pastOrders.length > 0 ? pastOrders.map(order => (
                         <tr key={order.id} className="hover:bg-[#FBF9F4] transition-colors">
-                          <td className="px-6 py-4 font-bold text-[#5e0d0f] whitespace-nowrap">{order.order_no}</td>
+                          <td 
+                            className="px-6 py-4 font-bold text-[#5e0d0f] whitespace-nowrap cursor-pointer hover:underline"
+                            onClick={() => setSelectedOrderDetails(order)}
+                          >
+                            {order.order_no}
+                          </td>
                           <td className="px-6 py-4 font-medium text-[#3C2F2F] whitespace-nowrap">{order.buyer_name}</td>
                           <td className="px-6 py-4 text-gray-500 whitespace-nowrap">{new Date(order.created_at).toLocaleDateString('tr-TR')}</td>
                           <td className="px-6 py-4 font-extrabold text-[#3C2F2F] whitespace-nowrap">₺{order.total_amount}</td>
@@ -983,6 +1011,95 @@ const loadOrders = async (isAdmin: boolean) => {
 
         </div>
       </div>
+
+      {/* ================= GEÇMİŞ SİPARİŞ DETAY MODALI ================= */}
+      {selectedOrderDetails && (
+        <div className="fixed inset-0 bg-[#3C2F2F]/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[32px] max-w-2xl w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh] no-scrollbar">
+            <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Sipariş Detayı</p>
+                <h3 className="text-2xl font-extrabold text-[#5e0d0f]">{selectedOrderDetails.order_no}</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedOrderDetails(null)} 
+                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Alıcı ve İletişim Bilgileri */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-[#FBF9F4] p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">Müşteri Bilgileri</p>
+                  <p className="font-bold text-[#3C2F2F] text-sm">{selectedOrderDetails.buyer_name}</p>
+                  <p className="text-xs text-gray-500 mt-1">{selectedOrderDetails.buyer_phone}</p>
+                </div>
+                <div className="bg-[#FBF9F4] p-4 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">Sipariş Durumu</p>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide inline-block ${
+                    selectedOrderDetails.status === 'IPTAL' 
+                      ? 'bg-red-100 text-red-700 border border-red-200' 
+                      : selectedOrderDetails.status === 'TESLIM_EDILDI'
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-amber-100 text-amber-700 border border-amber-200'
+                  }`}>
+                    {statusConfig[selectedOrderDetails.status]?.label || selectedOrderDetails.status}
+                  </span>
+                  <p className="text-[10px] text-gray-400 mt-1.5">{new Date(selectedOrderDetails.created_at).toLocaleString('tr-TR')}</p>
+                </div>
+              </div>
+
+              {/* Teslimat Adresi ve Kargo Takip */}
+              <div className="bg-[#FBF9F4] p-5 rounded-2xl border border-gray-100 space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teslimat Adresi</p>
+                  <p className="text-xs text-gray-700 leading-relaxed font-medium">{selectedOrderDetails.shipping_address}</p>
+                </div>
+                {selectedOrderDetails.tracking_code && (
+                  <div className="pt-2 border-t border-gray-200/50 flex items-center gap-2">
+                    <span className="text-lg">🚚</span>
+                    <div>
+                      <p className="text-[9px] text-blue-600 font-bold uppercase tracking-widest">Kargo Takip Kodu</p>
+                      <p className="font-bold text-blue-800 text-xs">{selectedOrderDetails.tracking_code}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sepet İçeriği */}
+              <div className="bg-[#FBF9F4] p-5 rounded-2xl border border-gray-100 shadow-inner">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-1">Sepet Detayı</p>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1 no-scrollbar">
+                  {(typeof selectedOrderDetails.items === 'string' ? JSON.parse(selectedOrderDetails.items) : selectedOrderDetails.items).map((i: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-xs font-bold text-[#3C2F2F] py-1 border-b border-gray-50 last:border-0">
+                      <span>{i.quantity}x {i.name}</span>
+                      <span>₺{i.price * i.quantity}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-1 text-xs">
+                  <div className="flex justify-between text-gray-500 font-medium">
+                    <span>Ara Toplam:</span>
+                    <span>₺{selectedOrderDetails.subtotal}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-500 font-medium">
+                    <span>Kargo Ücreti:</span>
+                    <span>{Number(selectedOrderDetails.shipping_fee) > 0 ? `₺${selectedOrderDetails.shipping_fee}` : 'Ücretsiz'}</span>
+                  </div>
+                  <div className="border-t border-gray-100 my-2"></div>
+                  <div className="flex justify-between font-extrabold text-[#5e0d0f] text-sm">
+                    <span>Genel Toplam:</span>
+                    <span>₺{selectedOrderDetails.total_amount}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= SAĞ ALT PREMIUM BİLDİRİM BALONCUĞU (TOAST) ================= */}
       {showToast && (

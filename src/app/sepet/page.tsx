@@ -92,6 +92,18 @@ const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(buyerInfo.email)) {
+      alert('Lütfen geçerli bir e-posta adresi giriniz.');
+      return;
+    }
+
+    const phoneRegex = /^5\d{9}$/;
+    if (!phoneRegex.test(buyerInfo.phone)) {
+      alert('Lütfen geçerli bir telefon numarası giriniz (Başında 0 olmadan 10 hane: 5XXXXXXXXX).');
+      return;
+    }
+
     if (cart.length === 0) {
       return;
     }
@@ -361,9 +373,15 @@ if (profile.address) {
 
                     <input 
                       type="tel" 
-                      placeholder="Telefon Numaranız" 
+                      placeholder="Telefon Numaranız (5XX XXX XX XX)" 
+                      maxLength={10}
                       value={buyerInfo.phone} 
-                      onChange={e => setBuyerInfo({...buyerInfo, phone: e.target.value})}
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) {
+                          setBuyerInfo({...buyerInfo, phone: val});
+                        }
+                      }}
                       className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-xs focus:ring-1 focus:ring-[#D4A373] outline-none text-[#3C2F2F]"
                     />
 

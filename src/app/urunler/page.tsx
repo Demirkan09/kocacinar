@@ -12,6 +12,7 @@ interface Product {
   image_url: string;
   category: string;
   unit: string; 
+  unit_value?: number | null;
   sort_order?: number;
 }
 
@@ -54,7 +55,7 @@ function UrunlerPage() {
   const [bulkUploadProgress, setBulkUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const [formData, setFormData] = useState({ 
-    name: '', price: '', old_price: '', image_url: '', category: '', unit: 'kg' 
+    name: '', price: '', old_price: '', image_url: '', category: '', unit: 'kg', unit_value: '1' 
   });
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -76,7 +77,8 @@ function UrunlerPage() {
           price: '',
           old_price: '',
           category: categories[0] || 'PEYNİR',
-          unit: 'kg'
+          unit: 'kg',
+          unit_value: '1'
         };
       });
 
@@ -123,6 +125,7 @@ function UrunlerPage() {
         if (item.old_price) submitData.append('old_price', item.old_price);
         submitData.append('category', item.category);
         submitData.append('unit', item.unit);
+        submitData.append('unit_value', item.unit_value || '1');
         submitData.append('image', item.file);
 
         const res = await fetch('/api/products', {
@@ -323,6 +326,7 @@ function UrunlerPage() {
     if (formData.old_price) submitData.append('old_price', formData.old_price);
     submitData.append('category', formData.category || categories[0]);
     submitData.append('unit', formData.unit || 'kg');
+    submitData.append('unit_value', formData.unit_value || '1');
 
     // Eğer bilgisayardan yeni bir resim seçildiyse onu pakete koy
     if (selectedFile) {
@@ -348,7 +352,7 @@ function UrunlerPage() {
         if (editingProduct) setProducts(products.map(p => p.id === editingProduct.id ? data.product : p));
         else setProducts([data.product, ...products]);
         setIsModalOpen(false);
-        setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg' });
+        setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg', unit_value: '1' });
         setSelectedFile(null); // Başarılı olunca dosyayı hafızadan sil
       } else {
         alert(`Hata: ${data.error || 'Ürün kaydedilemedi.'}`);
@@ -369,11 +373,12 @@ function UrunlerPage() {
       setEditingProduct(product);
       setFormData({ 
         name: product.name, price: product.price.toString(), old_price: product.old_price ? product.old_price.toString() : '',
-        image_url: product.image_url, category: product.category || categories[0], unit: product.unit || 'kg'
+        image_url: product.image_url, category: product.category || categories[0], unit: product.unit || 'kg',
+        unit_value: product.unit_value ? product.unit_value.toString() : '1'
       });
     } else {
       setEditingProduct(null);
-      setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg' });
+      setFormData({ name: '', price: '', old_price: '', image_url: '', category: categories[0], unit: 'kg', unit_value: '1' });
     }
     setIsModalOpen(true);
   };
@@ -492,7 +497,9 @@ function UrunlerPage() {
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-[#D4A373] tracking-wider uppercase block">{product.category}</span>
                       <h3 className="font-bold text-[#3C2F2F] text-sm md:text-base break-words group-hover:text-[#5e0d0f] transition-colors">{product.name}</h3>
-                      <p className="text-gray-400 text-xs font-medium">1 {product.unit} Fiyatı</p>
+                      <p className="text-gray-400 text-xs font-medium">
+                        {product.unit_value && Number(product.unit_value) !== 1 ? product.unit_value : '1'} {product.unit} Fiyatı
+                      </p>
                       <div className="flex items-baseline gap-2 pt-2 border-t border-gray-50 mt-2">
                         <span className="text-lg md:text-xl font-extrabold text-[#5e0d0f]">₺{product.price}</span>
                         {product.old_price && Number(product.old_price) > Number(product.price) && (
@@ -501,7 +508,14 @@ function UrunlerPage() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => addToCart({ id: product.id, name: product.name, price: product.price, image_url: product.image_url, category: product.category, unit: product.unit })}
+                      onClick={() => addToCart({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        image_url: product.image_url,
+                        category: product.category,
+                        unit: product.unit_value && Number(product.unit_value) !== 1 ? `${product.unit_value} ${product.unit}` : product.unit
+                      })}
                       className="w-full bg-[#5e0d0f] hover:bg-[#3d080a] text-white transition-all duration-300 font-bold text-xs md:text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-[0.98]"
                     >
                       Sepete Ekle
@@ -686,7 +700,24 @@ function UrunlerPage() {
                                 />
                               </div>
 
-                              <div className="col-span-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-[#D4A373] uppercase tracking-wider block mb-1">Miktar / Değer</label>
+                                <input
+                                  type="number"
+                                  required
+                                  step="any"
+                                  min="0"
+                                  value={item.unit_value}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setBulkItems(prev => prev.map(p => p.id === item.id ? { ...p, unit_value: val } : p));
+                                  }}
+                                  className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none"
+                                  placeholder="Örn: 250, 330, 1"
+                                />
+                              </div>
+
+                              <div>
                                 <label className="text-[10px] font-bold text-[#D4A373] uppercase tracking-wider block mb-1">Birim</label>
                                 <select
                                   value={item.unit}
@@ -697,10 +728,11 @@ function UrunlerPage() {
                                   className="w-full bg-white border border-gray-200 rounded-xl py-2 px-3 text-[#3C2F2F] text-xs focus:ring-1 focus:ring-[#D4A373] outline-none"
                                 >
                                   <option value="kg">Kilogram (kg)</option>
-                                  <option value="Litre">Litre (L)</option>
+                                  <option value="Litre">Litre (Litre)</option>
                                   <option value="Adet">Adet</option>
                                   <option value="Paket">Paket</option>
-                                  <option value="Gram">Gram (g)</option>
+                                  <option value="gr">Gram (gr)</option>
+                                  <option value="ml">Mililitre (ml)</option>
                                 </select>
                               </div>
                             </div>
@@ -763,10 +795,19 @@ function UrunlerPage() {
                   <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 block mb-1">İndirimsiz Fiyat (₺)</label>
                   <input type="number" step="0.01" value={formData.old_price} onChange={e => setFormData({...formData, old_price: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-gray-300 outline-none" placeholder="Opsiyonel" />
                 </div>
-                <div className="col-span-2">
+                <div>
+                  <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Miktar / Değer</label>
+                  <input type="number" required step="any" min="0" value={formData.unit_value} onChange={e => setFormData({...formData, unit_value: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] transition-all outline-none" placeholder="Örn: 250, 330, 1" />
+                </div>
+                <div>
                   <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block mb-1">Birim Seçimi</label>
                   <select value={formData.unit} onChange={e => setFormData({...formData, unit: e.target.value})} className="w-full bg-[#FBF9F4] border border-[#D4A373]/20 rounded-2xl py-3 px-4 text-[#3C2F2F] text-sm focus:ring-2 focus:ring-[#D4A373] transition-all outline-none">
-                    <option value="kg">Kilogram (kg)</option><option value="Litre">Litre (L)</option><option value="Adet">Adet</option><option value="Paket">Paket</option><option value="Gram">Gram (g)</option>
+                    <option value="kg">Kilogram (kg)</option>
+                    <option value="Litre">Litre (Litre)</option>
+                    <option value="Adet">Adet</option>
+                    <option value="Paket">Paket</option>
+                    <option value="gr">Gram (gr)</option>
+                    <option value="ml">Mililitre (ml)</option>
                   </select>
                 </div>
               </div>

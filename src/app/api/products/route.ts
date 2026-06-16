@@ -71,11 +71,12 @@ export async function POST(request: Request) {
         const old_price = prod.old_price ? parseFloat(prod.old_price) : null;
         const category = prod.category || 'PEYNİR';
         const unit = prod.unit || 'kg';
+        const unit_value = prod.unit_value ? parseFloat(prod.unit_value) : 1;
         const image_url = prod.image_url || '/default.png';
 
         const res = await query(
-          'INSERT INTO products (name, price, old_price, image_url, category, unit, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-          [name.trim(), price, old_price, image_url, category, unit, currentOrder]
+          'INSERT INTO products (name, price, old_price, image_url, category, unit, unit_value, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+          [name.trim(), price, old_price, image_url, category, unit, unit_value, currentOrder]
         );
         insertedProducts.push(res.rows[0]);
       }
@@ -91,6 +92,7 @@ export async function POST(request: Request) {
     const old_price = formData.get('old_price') as string | null;
     const category = formData.get('category') as string;
     const unit = formData.get('unit') as string;
+    const unit_value = formData.get('unit_value') as string || '1';
     
     const image = formData.get('image') as File | null;
     let finalImageUrl = formData.get('image_url') as string || '/default.png';
@@ -119,8 +121,8 @@ export async function POST(request: Request) {
     const nextOrder = (maxOrderRes.rows[0]?.max_order || 0) + 1;
 
     const res = await query(
-      'INSERT INTO products (name, price, old_price, image_url, category, unit, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', nextOrder]
+      'INSERT INTO products (name, price, old_price, image_url, category, unit, unit_value, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', parseFloat(unit_value), nextOrder]
     );
 
     return NextResponse.json({ success: true, product: res.rows[0] });
@@ -161,6 +163,7 @@ export async function PUT(request: Request) {
     const old_price = formData.get('old_price') as string | null;
     const category = formData.get('category') as string;
     const unit = formData.get('unit') as string;
+    const unit_value = formData.get('unit_value') as string || '1';
     
     const image = formData.get('image') as File | null;
     let finalImageUrl = formData.get('image_url') as string;
@@ -199,8 +202,8 @@ export async function PUT(request: Request) {
     const parsedOldPrice = old_price ? parseFloat(old_price) : null;
 
     const res = await query(
-      'UPDATE products SET name = $1, price = $2, old_price = $3, image_url = $4, category = $5, unit = $6 WHERE id = $7 RETURNING *',
-      [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', parseInt(id)]
+      'UPDATE products SET name = $1, price = $2, old_price = $3, image_url = $4, category = $5, unit = $6, unit_value = $7 WHERE id = $8 RETURNING *',
+      [name.trim(), parseFloat(price), parsedOldPrice, finalImageUrl, category || 'PEYNİR', unit || 'kg', parseFloat(unit_value), parseInt(id)]
     );
 
     if (res.rowCount === 0) {

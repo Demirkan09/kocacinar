@@ -28,15 +28,43 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
+  // URL'deki arama parametresi değiştiğinde input değerini güncelle
+  useEffect(() => {
+    const q = searchParams?.get('q') || '';
+    setSearchQuery(q);
+    if (q) {
+      setIsSearchOpen(true);
+    }
+  }, [searchParams]);
+
+  // Arama sorgusunu gecikmeli (debounce) olarak URL'e yansıt
+  useEffect(() => {
+    if (!mounted) return;
+    if (pathname !== '/urunler') return;
+
+    const handler = setTimeout(() => {
+      const currentQ = searchParams?.get('q') || '';
+      if (searchQuery.trim() !== currentQ) {
+        if (searchQuery.trim()) {
+          router.replace(`/urunler?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+          router.replace('/urunler');
+        }
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery, pathname, router, mounted, searchParams]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
-    if (val.trim()) {
+    
+    // Eğer /urunler sayfasında değilsek, aramaya başlamak için anında yönlendir
+    if (pathname !== '/urunler' && val.trim()) {
       router.replace(`/urunler?q=${encodeURIComponent(val)}`);
-    } else {
-      if (pathname === '/urunler') {
-        router.replace('/urunler');
-      }
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   HiOutlineMagnifyingGlass,
   HiOutlineUser,
@@ -23,6 +23,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('q') || '');
+  
+  // Kullanıcının yazım durumunu ve odağını takip etmek için ref'ler
+  const lastTypeTime = useRef<number>(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -30,6 +34,10 @@ export default function Navbar() {
 
   // URL'deki arama parametresi değiştiğinde input değerini güncelle
   useEffect(() => {
+    // Eğer kullanıcı arama kutusuna odaklanmışsa veya son 1.5 saniye içinde yazdıysa, URL'den ezme yapma
+    if (document.activeElement === searchInputRef.current || Date.now() - lastTypeTime.current < 1500) {
+      return;
+    }
     const q = searchParams?.get('q') || '';
     setSearchQuery(q);
     if (q) {
@@ -61,6 +69,7 @@ export default function Navbar() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
+    lastTypeTime.current = Date.now();
     
     // Eğer /urunler sayfasında değilsek, aramaya başlamak için anında yönlendir
     if (pathname !== '/urunler' && val.trim()) {
@@ -215,6 +224,7 @@ export default function Navbar() {
           <div className="pb-4 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
             <form onSubmit={(e) => e.preventDefault()} className="relative max-w-3xl mx-auto">
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}

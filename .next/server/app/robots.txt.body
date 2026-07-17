@@ -1,0 +1,8 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /*.json$
+
+Sitemap: https://www.kocacinarciftlik.com/sitemap.xml

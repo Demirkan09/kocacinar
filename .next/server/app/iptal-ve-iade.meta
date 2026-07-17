@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/iptal-ve-iade/layout,_N_T_/iptal-ve-iade/page,_N_T_/iptal-ve-iade"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/iptal-ve-iade/__PAGE__",
+    "/iptal-ve-iade",
+    "/_index",
+    "/_head"
+  ]
+}

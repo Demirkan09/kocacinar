@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/hakkimizda/layout,_N_T_/hakkimizda/page,_N_T_/hakkimizda"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/hakkimizda/__PAGE__",
+    "/hakkimizda",
+    "/_index",
+    "/_head"
+  ]
+}

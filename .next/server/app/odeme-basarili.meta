@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/odeme-basarili/layout,_N_T_/odeme-basarili/page,_N_T_/odeme-basarili"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/odeme-basarili/__PAGE__",
+    "/odeme-basarili",
+    "/_index",
+    "/_head"
+  ]
+}

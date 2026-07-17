@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/gizlilik-ve-kvkk/layout,_N_T_/gizlilik-ve-kvkk/page,_N_T_/gizlilik-ve-kvkk"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/gizlilik-ve-kvkk/__PAGE__",
+    "/gizlilik-ve-kvkk",
+    "/_index",
+    "/_head"
+  ]
+}

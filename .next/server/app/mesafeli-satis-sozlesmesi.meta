@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/mesafeli-satis-sozlesmesi/layout,_N_T_/mesafeli-satis-sozlesmesi/page,_N_T_/mesafeli-satis-sozlesmesi"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/mesafeli-satis-sozlesmesi/__PAGE__",
+    "/mesafeli-satis-sozlesmesi",
+    "/_index",
+    "/_head"
+  ]
+}

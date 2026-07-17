@@ -6,6 +6,8 @@ export async function POST(request: Request) {
   const host = request.headers.get('host') || '';
   const cookieOptions: any = {
     httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
     expires: new Date(0),
     path: '/',
   };

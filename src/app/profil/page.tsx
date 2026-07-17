@@ -438,8 +438,7 @@ const loadOrders = async (isAdmin: boolean) => {
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
       if (res.ok) {
-        router.push('/login');
-        router.refresh();
+        window.location.href = '/login';
       }
     } catch (error) {
       console.error('Çıkış yapılırken hata oluştu:', error);

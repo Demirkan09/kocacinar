@@ -383,7 +383,8 @@ function UrunlerPage() {
     setIsModalOpen(true);
   };
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = products.filter((product: any) => {
+    if (product.is_active === false) return false;
     const matchesCategory = selectedCategory === 'HEPSİ' || product.category?.toUpperCase() === selectedCategory.toUpperCase();
     const matchesSearch = searchQuery
       ? normalizeTurkish(product.name).includes(normalizeTurkish(searchQuery))

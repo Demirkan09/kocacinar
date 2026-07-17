@@ -73,9 +73,9 @@ const handleAddressSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
       message += `${index + 1}) *${item.name}* - ${item.quantity} ${item.unit || 'kg'} x ₺${item.price} \n`;
     });
     message += `\n-------------------------\n`;
-    message += `*Ara Toplam:* ₺${subtotal}\n`;
-    message += `*Kargo:* ${shippingFee === 0 ? 'Ücretsiz' : `₺${shippingFee}`}\n`;
-    message += `*Toplam Tutar:* *₺${totalAmount}*\n\n`;
+    message += `*Ara Toplam:* ₺${subtotal.toFixed(2)}\n`;
+    message += `*Kargo:* ${shippingFee === 0 ? 'Ücretsiz' : `₺${shippingFee.toFixed(2)}`}\n`;
+    message += `*Toplam Tutar:* *₺${totalAmount.toFixed(2)}*\n\n`;
     message += `Merhaba, bu ürünleri sipariş etmek istiyorum.`;
 
     const encodedMessage = encodeURIComponent(message);
@@ -269,7 +269,7 @@ if (profile.address) {
                   {/* Fiyat ve Silme Butonu */}
                   <div className="text-right flex flex-col items-end gap-2 pl-2">
                     <span className="font-extrabold text-[#5e0d0f] text-sm md:text-base">
-                      ₺{item.price * item.quantity}
+                      ₺{(item.price * item.quantity).toFixed(2)}
                     </span>
                     <button 
                       onClick={() => removeFromCart(item.id)}
@@ -301,7 +301,7 @@ if (profile.address) {
                 <div className="space-y-4 text-sm font-medium text-gray-600">
                   <div className="flex justify-between">
                     <span>Sepet Toplamı</span>
-                    <span className="text-[#3C2F2F] font-bold">₺{subtotal}</span>
+                    <span className="text-[#3C2F2F] font-bold">₺{subtotal.toFixed(2)}</span>
                   </div>
                   
                   <div className="flex justify-between items-center">
@@ -309,13 +309,13 @@ if (profile.address) {
                     {shippingFee === 0 ? (
                       <span className="text-green-600 font-bold bg-green-50 px-2 py-0.5 rounded-md text-xs">Ücretsiz</span>
                     ) : (
-                      <span className="text-[#3C2F2F] font-bold">₺{shippingFee}</span>
+                      <span className="text-[#3C2F2F] font-bold">₺{shippingFee.toFixed(2)}</span>
                     )}
                   </div>
 
                   {shippingFee > 0 && (
                     <p className="text-[11px] text-amber-600 font-medium bg-amber-50 p-2.5 rounded-xl border border-amber-100">
-                      💡 Siparişinize <span className="font-bold">₺{freeShippingThreshold - subtotal}</span> tutarında daha ürün eklemeniz durumunda kargo ücreti alınmayacaktır.
+                      💡 Siparişinize <span className="font-bold">₺{(freeShippingThreshold - subtotal).toFixed(2)}</span> tutarında daha ürün eklemeniz durumunda kargo ücreti alınmayacaktır.
                     </p>
                   )}
 
@@ -323,7 +323,7 @@ if (profile.address) {
 
                   <div className="flex justify-between items-end pt-2">
                     <span className="text-base text-[#3C2F2F] font-bold">Genel Toplam</span>
-                    <span className="text-2xl font-extrabold text-[#5e0d0f]">₺{totalAmount}</span>
+                    <span className="text-2xl font-extrabold text-[#5e0d0f]">₺{totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -403,7 +403,7 @@ if (profile.address) {
                 {isBelowMinOrder && (
                   <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-xs font-bold text-left animate-in fade-in duration-300">
                     <span className="text-base mr-1">⚠️</span>
-                    Sipariş verebilmek için minimum sepet tutarı <strong>₺{minOrderAmount}</strong> olmalıdır. Siparişinizi tamamlamak için sepetinize <strong>₺{minOrderAmount - subtotal}</strong> tutarında daha ürün eklemelisiniz.
+                    Sipariş verebilmek için minimum sepet tutarı <strong>₺{minOrderAmount}</strong> olmalıdır. Siparişinizi tamamlamak için sepetinize <strong>₺{(minOrderAmount - subtotal).toFixed(2)}</strong> tutarında daha ürün eklemelisiniz.
                   </div>
                 )}
 

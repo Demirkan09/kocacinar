@@ -29,7 +29,13 @@ async function isAdmin() {
 // 1. ÜRÜNLERİ LİSTELEME (GET)
 export async function GET() {
   try {
-    const res = await query('SELECT * FROM products ORDER BY sort_order ASC, id DESC');
+    const admin = await isAdmin();
+    let res;
+    if (admin) {
+      res = await query('SELECT * FROM products ORDER BY sort_order ASC, id DESC');
+    } else {
+      res = await query('SELECT * FROM products WHERE is_active = true ORDER BY sort_order ASC, id DESC');
+    }
     return NextResponse.json(res.rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -151,6 +157,16 @@ export async function PUT(request: Request) {
           ]);
         }
         return NextResponse.json({ success: true, message: 'Sıralama güncellendi.' });
+      }
+      if (body.action === 'toggle_active' && body.id !== undefined && body.is_active !== undefined) {
+        const res = await query(
+          'UPDATE products SET is_active = $1 WHERE id = $2 RETURNING *',
+          [body.is_active, parseInt(body.id)]
+        );
+        if (res.rowCount === 0) {
+          return NextResponse.json({ error: 'Ürün bulunamadı.' }, { status: 404 });
+        }
+        return NextResponse.json({ success: true, product: res.rows[0] });
       }
       return NextResponse.json({ error: 'Geçersiz JSON isteği.' }, { status: 400 });
     }

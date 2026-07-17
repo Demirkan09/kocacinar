@@ -99,13 +99,22 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json({ message: 'Kayıt başarıyla tamamlandı.', user: newUser }, { status: 201 });
 
-    response.cookies.set('kocacinar_session', token, {
+    // Cookie ayarlarını yapıyoruz (Güvenlik tavan)
+    const host = request.headers.get('host') || '';
+    const cookieOptions: any = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Güvenli HTTPS bağlantısı için
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
-    });
+    };
+
+    // www. ve bare domain (kocacinarciftlik.com) arasında cookie paylaşımını sağlamak için domain ayarı
+    if (host.includes('kocacinarciftlik.com')) {
+      cookieOptions.domain = '.kocacinarciftlik.com';
+    }
+
+    response.cookies.set('kocacinar_session', token, cookieOptions);
 
     return response;
 

@@ -2,10 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Switch } from '@/app/components/ui/cnippet-switch';
 
 function ProfileContent() {
   const [activeTab, setActiveTab] = useState('kisisel');
   const [user, setUser] = useState<any>(null);
+  const isAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(true);
   
   // Form State Yapıları (Kişisel)
@@ -46,6 +48,10 @@ function ProfileContent() {
 
   // Geçmiş Sipariş Detay State'i
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
+
+  // Yönetici Ürün Listesi State'leri
+  const [productsList, setProductsList] = useState<any[]>([]);
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
 
   const loadSiteSettings = async () => {
     try {
@@ -192,6 +198,56 @@ const loadOrders = async (isAdmin: boolean) => {
       setIsOrdersLoading(false); // İstekler bitince animasyonu durdur
     }
   };
+
+  // Ürünlerin listesini çekme ve aktif/pasif durumunu güncelleme (Yönetici)
+  const loadAdminProducts = async () => {
+    setIsProductsLoading(true);
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        setProductsList(data);
+      }
+    } catch (err) {
+      console.error('Ürünler yüklenemedi:', err);
+    } finally {
+      setIsProductsLoading(false);
+    }
+  };
+
+  const handleToggleProductActive = async (id: number, currentStatus: boolean) => {
+    try {
+      const res = await fetch('/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'toggle_active',
+          id: id,
+          is_active: !currentStatus
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setProductsList(prev => prev.map(p => p.id === id ? { ...p, is_active: !currentStatus } : p));
+          setToastMessage(currentStatus ? 'Ürün satışa kapatıldı 🔴' : 'Ürün satışa açıldı 🟢');
+          setShowToast(true);
+        } else {
+          setToastMessage(data.error || 'İşlem başarısız ❌');
+          setShowToast(true);
+        }
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'urunler' && isAdmin) {
+      loadAdminProducts();
+    }
+  }, [activeTab, isAdmin]);
 
   // Kullanıcı verisini çekme
   useEffect(() => {
@@ -405,7 +461,6 @@ const loadOrders = async (isAdmin: boolean) => {
 
   const currentFN = firstName || user.first_name || user.firstname || user.firstName || '';
   const currentLN = lastName || user.last_name || user.lastname || user.lastName || '';
-  const isAdmin = user.role === 'admin';
   
   const avatarInitials = `${currentFN ? currentFN.charAt(0).toUpperCase() : ''}${currentLN ? currentLN.charAt(0).toUpperCase() : ''}`;
 
@@ -465,6 +520,9 @@ const loadOrders = async (isAdmin: boolean) => {
                 </button>
                 <button onClick={() => setActiveTab('gecmis_siparisler')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'gecmis_siparisler' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                   <span className="text-lg">📚</span> Geçmiş Siparişler
+                </button>
+                <button onClick={() => setActiveTab('urunler')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'urunler' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
+                  <span className="text-lg">🧀</span> Ürünler
                 </button>
                 <button onClick={() => setActiveTab('site_ayarlari')} className={`snap-start flex-shrink-0 whitespace-nowrap md:w-full text-left px-5 py-4 rounded-2xl text-sm font-bold flex items-center gap-3 border md:border-none ${activeTab === 'site_ayarlari' ? 'bg-[#5e0d0f] text-white shadow-md border-[#5e0d0f]' : 'text-gray-600 bg-white md:bg-transparent hover:bg-[#F5F0E6] border-gray-100'}`}>
                   <span className="text-lg">⚙️</span> Site Ayarları
@@ -878,6 +936,67 @@ const loadOrders = async (isAdmin: boolean) => {
                       )}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ================= ÜRÜNLER TABI (ADMİN) ================= */}
+          {activeTab === 'urunler' && isAdmin && (
+            <div className="animate-in fade-in duration-500 space-y-8">
+              <div>
+                <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-2">🧀 Ürün Yönetimi</h3>
+                <p className="text-gray-500 text-sm">Ürünlerin satış durumunu buradan güncelleyebilirsiniz. Kapalı olan ürünler /urunler sayfasında görünmez.</p>
+              </div>
+
+              {isProductsLoading ? (
+                <div className="bg-white p-12 rounded-3xl border border-[#D4A373]/10 shadow-sm text-center">
+                  <div className="w-12 h-12 border-4 border-[#D4A373]/20 border-t-[#5e0d0f] rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-[#3C2F2F] font-bold">Ürünler Yükleniyor...</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl border border-[#D4A373]/10 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-[#F5F0E6]/30 text-[#5e0d0f] font-bold text-xs uppercase tracking-wider border-b border-gray-100">
+                          <th className="px-6 py-4 w-24 text-center">Satışta</th>
+                          <th className="px-6 py-4">Ürün Adı</th>
+                          <th className="px-6 py-4">Fiyat</th>
+                          <th className="px-6 py-4">Kategori</th>
+                          <th className="px-6 py-4">Birim (Unit)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {productsList.length > 0 ? (
+                          productsList.map((prod) => (
+                            <tr key={prod.id} className="hover:bg-[#FBF9F4] transition-colors">
+                              <td className="px-6 py-4 text-center">
+                                <Switch 
+                                  checked={prod.is_active !== false} 
+                                  onCheckedChange={() => handleToggleProductActive(prod.id, prod.is_active !== false)} 
+                                />
+                              </td>
+                              <td className="px-6 py-4 font-bold text-[#3C2F2F]">{prod.name}</td>
+                              <td className="px-6 py-4 font-extrabold text-[#5e0d0f]">₺{Number(prod.price).toFixed(2)}</td>
+                              <td className="px-6 py-4">
+                                <span className="bg-[#D4A373]/10 text-[#5e0d0f] text-xs px-2.5 py-1 rounded-lg font-bold">
+                                  {prod.category}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-gray-500 font-medium">{prod.unit_value} {prod.unit}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="text-center py-12 text-gray-500 font-medium">
+                              📂 Kayıtlı ürün bulunamadı.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>

@@ -93,11 +93,11 @@ export default function Footer() {
           <p className="text-xs text-gray-500 mb-4">
             Tüm ödemeleriniz 256-bit SSL sertifikası ve İyzico güvencesi altındadır.
           </p>
-          <div className="bg-white rounded-xl p-4 flex items-center justify-center shadow-inner hover:shadow-lg transition-shadow duration-300">
+          <div className="bg-white rounded-xl p-3 flex items-center justify-center shadow-inner hover:shadow-lg transition-shadow duration-300 -mx-2 md:-mx-6 overflow-hidden">
             <img 
-              src="/iyzicoileode.png" 
+              src="/footer-payment.png" 
               alt="İyzico ile Güvenli Ödeme" 
-              className="w-full max-w-[180px] h-auto object-contain"
+              className="w-full max-h-24 object-contain scale-110"
             />
           </div>
         </div>

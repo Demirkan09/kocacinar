@@ -447,6 +447,15 @@ if (profile.address) {
                 <span className="text-xl">➔</span>
               </button>
 
+              {/* İYZİCO ÖDEME GÖRSELİ */}
+              <div className="pt-2 flex justify-center items-center">
+                <img 
+                  src="/iyzico_ile_ode_colored.png" 
+                  alt="İyzico ile Güvenli Ödeme" 
+                  className="max-h-16 w-auto object-contain mx-auto"
+                />
+              </div>
+
             </div>
 
           </div>

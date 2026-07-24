@@ -37,13 +37,36 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { buyer_name, buyer_phone, shipping_address, items, subtotal, shipping_fee, total_amount } = body;
+    const { 
+      buyer_name, buyer_phone, shipping_address, items, subtotal, shipping_fee, total_amount,
+      billing_address, same_as_shipping, is_corporate, company_name, tax_number, tax_office
+    } = body;
     const orderNo = 'KC-' + Math.floor(100000 + Math.random() * 900000); // Örn: KC-458921
 
     const res = await query(
-      `INSERT INTO orders (order_no, user_id, buyer_name, buyer_phone, shipping_address, items, subtotal, shipping_fee, total_amount, status) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'HAZIRLANIYOR') RETURNING *`,
-      [orderNo, user.id, buyer_name, buyer_phone, shipping_address, JSON.stringify(items), subtotal, shipping_fee, total_amount]
+      `INSERT INTO orders (
+         order_no, user_id, buyer_name, buyer_phone, shipping_address, 
+         items, subtotal, shipping_fee, total_amount, status,
+         billing_address, same_as_shipping, is_corporate, company_name, tax_number, tax_office
+       ) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'HAZIRLANIYOR', $10, $11, $12, $13, $14, $15) RETURNING *`,
+      [
+        orderNo, 
+        user.id, 
+        buyer_name, 
+        buyer_phone, 
+        shipping_address, 
+        JSON.stringify(items), 
+        subtotal, 
+        shipping_fee, 
+        total_amount,
+        billing_address || shipping_address,
+        same_as_shipping !== false,
+        is_corporate === true,
+        company_name || null,
+        tax_number || null,
+        tax_office || null
+      ]
     );
     return NextResponse.json({ success: true, order: res.rows[0] });
   } catch (error: any) {

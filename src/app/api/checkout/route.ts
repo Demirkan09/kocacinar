@@ -77,6 +77,20 @@ export async function POST(request: Request) {
     }
 
     const fullName = `${buyerInfo.first_name || ''} ${buyerInfo.last_name || ''}`.trim();
+    const sameAsShipping = buyerInfo.same_as_shipping !== false;
+    const isCorporate = buyerInfo.is_corporate === true;
+
+    const billingFullName = sameAsShipping
+      ? fullName
+      : `${buyerInfo.billing_first_name || buyerInfo.first_name || ''} ${buyerInfo.billing_last_name || buyerInfo.last_name || ''}`.trim();
+    
+    const billingAddressStr = sameAsShipping
+      ? (buyerInfo.address || "Adres bilgisi girilmemiş")
+      : (buyerInfo.billing_address || buyerInfo.address || "Adres bilgisi girilmemiş");
+      
+    const billingCityStr = sameAsShipping
+      ? (buyerInfo.city || "Aydın")
+      : (buyerInfo.billing_city || buyerInfo.city || "Aydın");
 
     // Payload'u hazırla
     const requestData = {
@@ -112,10 +126,10 @@ export async function POST(request: Request) {
         zipCode: "09000"
       },
       billingAddress: {
-        contactName: fullName,
-        city: buyerInfo.city || "Aydın",
+        contactName: isCorporate && buyerInfo.company_name ? buyerInfo.company_name : billingFullName,
+        city: billingCityStr,
         country: "Turkey",
-        address: buyerInfo.address || "Adres bilgisi girilmemiş",
+        address: billingAddressStr,
         zipCode: "09000"
       },
       basketItems: basketItems
@@ -139,9 +153,29 @@ export async function POST(request: Request) {
     // 3. EĞER IYZİCO BAŞARILI CEVAP VERDİYSE DB'YE KAYDET
     if (result.status === 'success') {
       await query(
-        `INSERT INTO orders (order_no, user_id, buyer_name, buyer_phone, shipping_address, items, subtotal, shipping_fee, total_amount, status) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ODEME_BEKLIYOR')`,
-        [orderNo, userId, fullName, buyerInfo.phone, buyerInfo.address, JSON.stringify(cartItems), subtotal, finalShippingFee, finalTotalPrice]
+        `INSERT INTO orders (
+           order_no, user_id, buyer_name, buyer_phone, shipping_address, 
+           items, subtotal, shipping_fee, total_amount, status,
+           billing_address, same_as_shipping, is_corporate, company_name, tax_number, tax_office
+         ) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'ODEME_BEKLIYOR', $10, $11, $12, $13, $14, $15)`,
+        [
+          orderNo, 
+          userId, 
+          fullName, 
+          buyerInfo.phone, 
+          buyerInfo.address, 
+          JSON.stringify(cartItems), 
+          subtotal, 
+          finalShippingFee, 
+          finalTotalPrice,
+          billingAddressStr,
+          sameAsShipping,
+          isCorporate,
+          buyerInfo.company_name || null,
+          buyerInfo.tax_number || null,
+          buyerInfo.tax_office || null
+        ]
       );
       
       return NextResponse.json(result);

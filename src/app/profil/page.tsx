@@ -28,6 +28,10 @@ function ProfileContent() {
   const [addrCity, setAddrCity] = useState('');
   const [addrDistrict, setAddrDistrict] = useState('');
   const [addrDetail, setAddrDetail] = useState('');
+  const [addrIsCorporate, setAddrIsCorporate] = useState(false);
+  const [addrCompanyName, setAddrCompanyName] = useState('');
+  const [addrTaxNumber, setAddrTaxNumber] = useState('');
+  const [addrTaxOffice, setAddrTaxOffice] = useState('');
 
   // 📦 Sipariş Yönetimi State'leri
   const [myOrders, setMyOrders] = useState<any[]>([]); 
@@ -348,12 +352,22 @@ const loadOrders = async (isAdmin: boolean) => {
       return;
     }
 
+    if (addrIsCorporate && (!addrCompanyName || !addrTaxNumber || !addrTaxOffice)) {
+      setToastMessage('Lütfen kurumsal fatura alanlarını (Firma Adı, Vergi No, Daire) doldurun ⚠️');
+      setShowToast(true);
+      return;
+    }
+
     const newAddress = {
       id: Date.now().toString(),
       title: addrTitle,
       city: addrCity,
       district: addrDistrict,
-      detail: addrDetail
+      detail: addrDetail,
+      is_corporate: addrIsCorporate,
+      company_name: addrCompanyName,
+      tax_number: addrTaxNumber,
+      tax_office: addrTaxOffice
     };
 
     const updatedAddresses = [...addresses, newAddress];
@@ -372,6 +386,7 @@ const loadOrders = async (isAdmin: boolean) => {
         setAddresses(updatedAddresses);
         setIsAddingAddress(false);
         setAddrTitle(''); setAddrCity(''); setAddrDistrict(''); setAddrDetail('');
+        setAddrIsCorporate(false); setAddrCompanyName(''); setAddrTaxNumber(''); setAddrTaxOffice('');
         
         setToastMessage('Yeni adres başarıyla eklendi ✅');
         setShowToast(true);
@@ -631,6 +646,35 @@ const loadOrders = async (isAdmin: boolean) => {
                       <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Açık Adres</label>
                       <textarea rows={3} value={addrDetail} onChange={(e) => setAddrDetail(e.target.value)} placeholder="Mahalle, sokak, bina no..." className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-[#D4A373] outline-none transition-all resize-none"></textarea>
                     </div>
+
+                    <div className="space-y-2 md:col-span-2 pt-2 border-t border-gray-200">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#5e0d0f]">
+                        <input 
+                          type="checkbox" 
+                          checked={addrIsCorporate} 
+                          onChange={(e) => setAddrIsCorporate(e.target.checked)} 
+                          className="w-4 h-4 rounded text-[#5e0d0f] focus:ring-[#D4A373]" 
+                        />
+                        🏢 Kurumsal Fatura Adresi (Opsiyonel)
+                      </label>
+                    </div>
+
+                    {addrIsCorporate && (
+                      <>
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Firma Adı / Unvanı</label>
+                          <input type="text" value={addrCompanyName} onChange={(e) => setAddrCompanyName(e.target.value)} placeholder="Firma Resmi Unvanı" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Vergi Numarası</label>
+                          <input type="text" value={addrTaxNumber} onChange={(e) => setAddrTaxNumber(e.target.value)} placeholder="Vergi No" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-bold text-gray-500 uppercase tracking-widest px-1">Vergi Dairesi</label>
+                          <input type="text" value={addrTaxOffice} onChange={(e) => setAddrTaxOffice(e.target.value)} placeholder="Vergi Dairesi" className="w-full bg-white border border-gray-200 rounded-xl py-3 px-4 text-[#3C2F2F] font-medium focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="mt-6 flex gap-3 justify-end">
                     <button onClick={() => setIsAddingAddress(false)} className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-all">
@@ -659,9 +703,18 @@ const loadOrders = async (isAdmin: boolean) => {
                           <div>
                             <h5 className="font-bold text-[#5e0d0f] flex items-center gap-2 mb-1">
                               <span className="text-xl">📍</span> {adr.title}
+                              {adr.is_corporate && (
+                                <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-md font-bold">🏢 Kurumsal</span>
+                              )}
                             </h5>
                             <p className="text-gray-600 text-sm font-bold uppercase tracking-wider">{adr.city} / {adr.district}</p>
                             <p className="text-gray-500 text-sm mt-2 leading-relaxed">{adr.detail}</p>
+                            {adr.is_corporate && (
+                              <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-blue-900 font-medium">
+                                <p className="font-bold">Firma: {adr.company_name}</p>
+                                <p className="text-gray-600">Vergi No: {adr.tax_number} | Daire: {adr.tax_office}</p>
+                              </div>
+                            )}
                           </div>
                           <button onClick={() => handleDeleteAddress(adr.id)} className="text-red-400 hover:text-red-600 p-2 md:opacity-0 group-hover:opacity-100 transition-all text-xl" title="Adresi Sil">
                             ✕
@@ -796,10 +849,29 @@ const loadOrders = async (isAdmin: boolean) => {
                         
                         <div className="grid lg:grid-cols-2 gap-6 mb-6">
                           <div className="bg-white p-4 rounded-2xl border border-amber-100">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-2">Alıcı Bilgileri</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b pb-2">Alıcı & Adres Bilgileri</p>
                             <p className="font-bold text-[#3C2F2F] text-base">{order.buyer_name}</p>
                             <p className="text-sm text-gray-500 mb-2">{order.buyer_phone}</p>
-                            <p className="text-sm font-medium text-gray-700 leading-relaxed bg-gray-50 p-2 rounded-xl">{order.shipping_address}</p>
+                            
+                            <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 mb-2">
+                              <span className="font-bold text-[10px] text-[#5e0d0f] uppercase tracking-wider block">🚚 Teslimat Adresi:</span>
+                              <p className="text-xs font-medium text-gray-700 leading-relaxed mt-0.5">{order.shipping_address}</p>
+                            </div>
+
+                            {order.billing_address && (order.same_as_shipping === false || order.billing_address !== order.shipping_address) && (
+                              <div className="bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/50 mb-2">
+                                <span className="font-bold text-[10px] text-amber-900 uppercase tracking-wider block">📄 Ayrı Fatura Adresi:</span>
+                                <p className="text-xs font-medium text-gray-700 leading-relaxed mt-0.5">{order.billing_address}</p>
+                              </div>
+                            )}
+
+                            {order.is_corporate && (
+                              <div className="bg-blue-50/80 p-2.5 rounded-xl border border-blue-200 text-xs">
+                                <span className="font-bold text-blue-900 flex items-center gap-1">🏢 Kurumsal Fatura Bilgileri</span>
+                                <p className="text-gray-800 font-bold mt-1">Firma: {order.company_name}</p>
+                                <p className="text-gray-600 font-medium">Vergi No: {order.tax_number} | Daire: {order.tax_office}</p>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-inner flex flex-col h-full max-h-48">
@@ -1170,12 +1242,28 @@ const loadOrders = async (isAdmin: boolean) => {
                 </div>
               </div>
 
-              {/* Teslimat Adresi ve Kargo Takip */}
+              {/* Teslimat, Fatura Adresi ve Kargo Takip */}
               <div className="bg-[#FBF9F4] p-5 rounded-2xl border border-gray-100 space-y-3">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Teslimat Adresi</p>
+                  <p className="text-[10px] font-bold text-[#5e0d0f] uppercase tracking-widest mb-1 flex items-center gap-1">🚚 Teslimat Adresi</p>
                   <p className="text-xs text-gray-700 leading-relaxed font-medium">{selectedOrderDetails.shipping_address}</p>
                 </div>
+
+                {selectedOrderDetails.billing_address && (selectedOrderDetails.same_as_shipping === false || selectedOrderDetails.billing_address !== selectedOrderDetails.shipping_address) && (
+                  <div className="pt-2 border-t border-gray-200/60">
+                    <p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-1 flex items-center gap-1">📄 Fatura Adresi</p>
+                    <p className="text-xs text-gray-700 leading-relaxed font-medium">{selectedOrderDetails.billing_address}</p>
+                  </div>
+                )}
+
+                {selectedOrderDetails.is_corporate && (
+                  <div className="pt-2 border-t border-gray-200/60 text-xs">
+                    <p className="text-[10px] font-bold text-blue-900 uppercase tracking-widest mb-1 flex items-center gap-1">🏢 Kurumsal Fatura Bilgileri</p>
+                    <p className="font-bold text-gray-800">Firma: {selectedOrderDetails.company_name}</p>
+                    <p className="text-gray-600 font-medium">Vergi No: {selectedOrderDetails.tax_number} | Vergi Dairesi: {selectedOrderDetails.tax_office}</p>
+                  </div>
+                )}
+
                 {selectedOrderDetails.tracking_code && (
                   <div className="pt-2 border-t border-gray-200/50 flex items-center gap-2">
                     <span className="text-lg">🚚</span>

@@ -220,7 +220,8 @@ export default function SepetPage() {
       if (data.status === 'success' && data.paymentPageUrl) {
         window.location.href = data.paymentPageUrl;
       } else {
-        alert(`Ödeme başlatılamadı: ${data.errorMessage || 'Bilinmeyen hata'}`);
+        const errorMsg = data.errorMessage || data.error || 'Bilinmeyen hata';
+        alert(`Ödeme başlatılamadı: ${errorMsg}`);
         setIsProcessing(false);
       }
     } catch (err) {

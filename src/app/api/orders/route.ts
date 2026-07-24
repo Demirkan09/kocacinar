@@ -43,6 +43,16 @@ export async function POST(request: Request) {
     } = body;
     const orderNo = 'KC-' + Math.floor(100000 + Math.random() * 900000); // Örn: KC-458921
 
+    // Tablo kolonlarının varlığını otomatik doğrula ve eksikse oluştur
+    await query(`
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS billing_address TEXT;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS same_as_shipping BOOLEAN DEFAULT TRUE;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_corporate BOOLEAN DEFAULT FALSE;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS company_name TEXT;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax_number TEXT;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS tax_office TEXT;
+    `);
+
     const res = await query(
       `INSERT INTO orders (
          order_no, user_id, buyer_name, buyer_phone, shipping_address, 

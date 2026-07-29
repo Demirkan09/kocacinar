@@ -17,6 +17,8 @@
   "/api/orders/me/route": "app/api/orders/me/route.js",
   "/api/orders/route": "app/api/orders/route.js",
   "/api/payment-callback/route": "app/api/payment-callback/route.js",
+  "/api/payment/callback/route": "app/api/payment/callback/route.js",
+  "/api/payment/webhook/route": "app/api/payment/webhook/route.js",
   "/api/products/reorder-featured/route": "app/api/products/reorder-featured/route.js",
   "/api/products/route": "app/api/products/route.js",
   "/api/settings/route": "app/api/settings/route.js",

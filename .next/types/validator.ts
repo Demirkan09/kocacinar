@@ -326,6 +326,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/payment/callback/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment/callback">> = Specific
+  const handler = {} as typeof import("../../src/app/api/payment/callback/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/payment/webhook/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/payment/webhook">> = Specific
+  const handler = {} as typeof import("../../src/app/api/payment/webhook/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/products/reorder-featured/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/products/reorder-featured">> = Specific

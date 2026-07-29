@@ -134,7 +134,7 @@ export async function POST(request: Request) {
     }
 
     const baseUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com').replace(/\/$/, '');
-    const callbackUrl = `${baseUrl}/api/payment-callback`;
+    const callbackUrl = `${baseUrl}/api/payment/callback`;
 
     // Payload'u hazırla
     const requestData: any = {

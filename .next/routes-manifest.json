@@ -132,6 +132,18 @@
       "namedRegex": "^/api/orders/me(?:/)?$"
     },
     {
+      "page": "/api/payment/callback",
+      "regex": "^/api/payment/callback(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payment/callback(?:/)?$"
+    },
+    {
+      "page": "/api/payment/webhook",
+      "regex": "^/api/payment/webhook(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/payment/webhook(?:/)?$"
+    },
+    {
       "page": "/api/payment-callback",
       "regex": "^/api/payment\\-callback(?:/)?$",
       "routeKeys": {},

@@ -17,6 +17,8 @@
   "/api/orders/me/route": "/api/orders/me",
   "/api/orders/route": "/api/orders",
   "/api/payment-callback/route": "/api/payment-callback",
+  "/api/payment/callback/route": "/api/payment/callback",
+  "/api/payment/webhook/route": "/api/payment/webhook",
   "/api/products/reorder-featured/route": "/api/products/reorder-featured",
   "/api/products/route": "/api/products",
   "/api/settings/route": "/api/settings",

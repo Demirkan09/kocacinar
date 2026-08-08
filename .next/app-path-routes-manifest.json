@@ -1,6 +1,8 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/admin/telegram/route": "/api/admin/telegram",
+  "/api/admin/test-order/route": "/api/admin/test-order",
   "/api/announcements/route": "/api/announcements",
   "/api/auth/forgot-password/route": "/api/auth/forgot-password",
   "/api/auth/login/route": "/api/auth/login",

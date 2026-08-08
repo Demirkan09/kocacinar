@@ -1,6 +1,8 @@
 {
   "/_global-error/page": "app/_global-error/page.js",
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/telegram/route": "app/api/admin/telegram/route.js",
+  "/api/admin/test-order/route": "app/api/admin/test-order/route.js",
   "/api/announcements/route": "app/api/announcements/route.js",
   "/api/auth/forgot-password/route": "app/api/auth/forgot-password/route.js",
   "/api/auth/login/route": "app/api/auth/login/route.js",

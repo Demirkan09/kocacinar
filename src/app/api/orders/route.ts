@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { sendTelegramOrderNotification } from '@/lib/telegram';
 
 // Kimlik ve Admin Doğrulama
 async function getUser() {
@@ -17,13 +18,13 @@ async function getUser() {
   } catch { return null; }
 }
 
-// 1. TÜM SİPARİŞLERİ GETİR (Sadece Admin)
+// 1. TÜM SİPARİŞLERİ GETİR (Sadece Admin - Ödeme Yapılmamış Siparişler Hariç)
 export async function GET() {
   const user = await getUser();
   if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 403 });
 
   try {
-    const res = await query('SELECT * FROM orders ORDER BY created_at DESC');
+    const res = await query("SELECT * FROM orders WHERE status != 'ODEME_BEKLIYOR' ORDER BY created_at DESC");
     return NextResponse.json(res.rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -78,6 +79,9 @@ export async function POST(request: Request) {
         tax_office || null
       ]
     );
+    // Telegram bildirimi gönder
+    sendTelegramOrderNotification(orderNo).catch(err => console.error('Sipariş Telegram bildirimi hatası:', err));
+
     return NextResponse.json({ success: true, order: res.rows[0] });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

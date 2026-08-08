@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Iyzipay from 'iyzipay';
 import { query } from '@/lib/db';
+import { sendTelegramOrderNotification } from '@/lib/telegram';
 
 export async function POST(request: Request) {
   try {
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
           "UPDATE orders SET status = 'HAZIRLANIYOR' WHERE order_no = $1 AND status NOT IN ('TESLIM_EDILDI', 'IPTAL')",
           [basketId]
         );
+        sendTelegramOrderNotification(basketId).catch(err => console.error('Webhook Telegram error:', err));
       } else {
         console.log(`Webhook: Sipariş #${basketId} ödemesi başarısız/iptal olarak işaretleniyor.`);
         await query(

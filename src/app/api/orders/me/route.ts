@@ -13,7 +13,7 @@ export async function GET() {
     const { payload }: any = await jwtVerify(token, secret);
     const userId = payload.id || payload.userId || payload.sub;
 
-    const res = await query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const res = await query("SELECT * FROM orders WHERE user_id = $1 AND status != 'ODEME_BEKLIYOR' ORDER BY created_at DESC", [userId]);
     return NextResponse.json(res.rows);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

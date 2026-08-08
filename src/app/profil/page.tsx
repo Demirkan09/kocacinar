@@ -38,6 +38,7 @@ function ProfileContent() {
   const [adminOrders, setAdminOrders] = useState<any[]>([]); 
   const [orderSearchQuery, setOrderSearchQuery] = useState(''); 
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
+  const [isCreatingTestOrder, setIsCreatingTestOrder] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -53,9 +54,71 @@ function ProfileContent() {
   // Geçmiş Sipariş Detay State'i
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<any | null>(null);
 
+  // Telegram Bildirim State'leri
+  const [telegramChatId, setTelegramChatId] = useState('');
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+
   // Yönetici Ürün Listesi State'leri
   const [productsList, setProductsList] = useState<any[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(false);
+
+  const loadTelegramSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/telegram');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.chatId) setTelegramChatId(data.chatId);
+      }
+    } catch (e) {
+      console.error('Telegram ayarları okunamadı:', e);
+    }
+  };
+
+  const handleSaveTelegramChatId = async () => {
+    try {
+      const res = await fetch('/api/admin/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_chat_id', chatId: telegramChatId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage('Telegram Chat ID başarıyla kaydedildi ✅');
+        setShowToast(true);
+      } else {
+        setToastMessage(data.error || 'Kaydedilemedi ❌');
+        setShowToast(true);
+      }
+    } catch (e) {
+      setToastMessage('Bağlantı hatası ❌');
+      setShowToast(true);
+    }
+  };
+
+  const handleSendTelegramTest = async () => {
+    setIsTestingTelegram(true);
+    try {
+      const res = await fetch('/api/admin/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_test', chatId: telegramChatId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage('Test mesajı Telegram hesabınıza başarıyla iletildi 📲');
+        setShowToast(true);
+        if (data.chatId) setTelegramChatId(data.chatId);
+      } else {
+        setToastMessage(data.error || 'Mesaj gönderilemedi ❌');
+        setShowToast(true);
+      }
+    } catch (e) {
+      setToastMessage('Bağlantı hatası ❌');
+      setShowToast(true);
+    } finally {
+      setIsTestingTelegram(false);
+    }
+  };
 
   const loadSiteSettings = async () => {
     try {
@@ -72,6 +135,8 @@ function ProfileContent() {
         const annData = await annRes.json();
         setAnnouncementsList(annData);
       }
+
+      loadTelegramSettings();
     } catch (err) {
       console.error('Ayarlar yüklenemedi:', err);
     }
@@ -439,6 +504,28 @@ const loadOrders = async (isAdmin: boolean) => {
         loadOrders(true); 
       }
     } catch (err) { alert('Hata oluştu'); }
+  };
+
+  // Test Siparişi Oluşturma (Admin)
+  const handleCreateTestOrder = async () => {
+    setIsCreatingTestOrder(true);
+    try {
+      const res = await fetch('/api/admin/test-order', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setToastMessage(`Test siparişi #${data.order.order_no} oluşturuldu 🧪`);
+        setShowToast(true);
+        loadOrders(true);
+      } else {
+        setToastMessage(data.error || 'Test siparişi oluşturulamadı ❌');
+        setShowToast(true);
+      }
+    } catch (err) {
+      setToastMessage('Bağlantı hatası oluştu ❌');
+      setShowToast(true);
+    } finally {
+      setIsCreatingTestOrder(false);
+    }
   };
 
   // Bildirimi otomatik kapatma
@@ -815,12 +902,23 @@ const loadOrders = async (isAdmin: boolean) => {
 {/* ================= AKTİF SİPARİŞLER (ADMİN) ================= */}
           {activeTab === 'aktif_siparisler' && isAdmin && (
             <div className="animate-in fade-in duration-500">
-              <h3 className="text-3xl font-extrabold text-[#5e0d0f] mb-6 flex items-center gap-3">
-                Aktif Siparişler 
-                {!isOrdersLoading && (
-                  <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full shadow-sm">{activeOrders.length}</span>
-                )}
-              </h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-[#5e0d0f] flex items-center gap-3">
+                  <span>Aktif Siparişler</span>
+                  {!isOrdersLoading && (
+                    <span className="bg-red-500 text-white text-sm px-3 py-1 rounded-full shadow-sm">{activeOrders.length}</span>
+                  )}
+                </h3>
+
+                <button
+                  onClick={handleCreateTestOrder}
+                  disabled={isCreatingTestOrder}
+                  className="bg-[#5e0d0f] hover:bg-[#3d080a] active:scale-95 text-white font-bold px-4 py-2.5 rounded-2xl text-xs sm:text-sm transition-all flex items-center gap-2 shadow-md disabled:opacity-50"
+                  title="Sistemi ve aşamaları test etmek için örnek sipariş oluştur"
+                >
+                  <span>{isCreatingTestOrder ? '⏳ Sipariş Üretiliyor...' : '🧪 Test Siparişi Oluştur'}</span>
+                </button>
+              </div>
               
               {isOrdersLoading ? (
                 // DÖNEN YÜKLENİYOR GÖRSELİ
@@ -1193,6 +1291,65 @@ const loadOrders = async (isAdmin: boolean) => {
                       <span className="text-base">+</span> Ekle
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* 3. Telegram Sipariş Bildirim Botu Kartı */}
+              <div className="bg-[#FBF9F4] p-6 md:p-8 rounded-3xl border border-[#D4A373]/30 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#D4A373]/20 pb-3">
+                  <div>
+                    <h4 className="font-bold text-lg text-[#3C2F2F] flex items-center gap-2">
+                      <span>🤖</span> Telegram Sipariş Bildirim Botu
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">Sitede yeni sipariş oluştuğunda anında Telegram telefonunuza detaylı bildirim gönderilir.</p>
+                  </div>
+                  <a 
+                    href="https://t.me/kocacinarsiparis_bot" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="bg-[#229ED9] hover:bg-[#1d89bd] text-white text-xs font-bold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-sm shrink-0"
+                  >
+                    <span>💬</span> Botu Başlat (@kocacinarsiparis_bot)
+                  </a>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-amber-50 border border-amber-200/70 p-4 rounded-2xl text-xs text-amber-900 leading-relaxed font-medium">
+                    <p className="font-bold mb-1">💡 Bildirimlerin Telefona Düşmesi İçin İlk Adım:</p>
+                    <ol className="list-decimal list-inside space-y-1 text-gray-700">
+                      <li>Telegram uygulamanızdan <a href="https://t.me/kocacinarsiparis_bot" target="_blank" rel="noreferrer" className="font-bold text-[#229ED9] underline">@kocacinarsiparis_bot</a> adresine gidin veya <b>Başlat (Start)</b> butonuna basın.</li>
+                      <li>Ardından aşağıdaki <b>"Test Mesajı Gönder"</b> butonuna basarak bağlantıyı onaylayın. Sistem Chat ID numaranızı otomatik tanıyacaktır!</li>
+                    </ol>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-[#D4A373] uppercase tracking-widest px-1 block">Telegram Chat / Grup ID</label>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        value={telegramChatId} 
+                        onChange={(e) => setTelegramChatId(e.target.value)} 
+                        placeholder="Otomatik tespit edilecek veya manuel hane (Örn: 987654321)"
+                        className="flex-1 bg-white border border-[#D4A373]/20 rounded-2xl py-3.5 px-4 text-[#3C2F2F] text-sm font-mono focus:ring-2 focus:ring-[#5e0d0f] outline-none transition-all shadow-inner"
+                      />
+                      <button 
+                        onClick={handleSaveTelegramChatId} 
+                        className="bg-[#5e0d0f] hover:bg-[#3d080a] text-white px-5 rounded-2xl text-xs font-bold transition-all active:scale-95 shadow-sm"
+                      >
+                        Kaydet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={handleSendTelegramTest} 
+                    disabled={isTestingTelegram}
+                    className="bg-[#229ED9] hover:bg-[#1d89bd] text-white px-6 py-3.5 rounded-2xl font-bold shadow-md hover:shadow-lg active:scale-95 transition-all text-sm flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <span>{isTestingTelegram ? '⏳ Mesaj Gönderiliyor...' : '📲 Telegram Test Mesajı Gönder'}</span>
+                  </button>
                 </div>
               </div>
 

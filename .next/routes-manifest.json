@@ -42,6 +42,18 @@
       "namedRegex": "^/_not\\-found(?:/)?$"
     },
     {
+      "page": "/api/admin/telegram",
+      "regex": "^/api/admin/telegram(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/telegram(?:/)?$"
+    },
+    {
+      "page": "/api/admin/test-order",
+      "regex": "^/api/admin/test\\-order(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/admin/test\\-order(?:/)?$"
+    },
+    {
       "page": "/api/announcements",
       "regex": "^/api/announcements(?:/)?$",
       "routeKeys": {},

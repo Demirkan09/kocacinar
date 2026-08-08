@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Iyzipay from 'iyzipay';
 import { query } from '@/lib/db';
+import { sendTelegramOrderNotification } from '@/lib/telegram';
 
 async function handleCallback(request: Request) {
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.kocacinarciftlik.com').replace(/\/$/, '');
@@ -57,6 +58,9 @@ async function handleCallback(request: Request) {
           "UPDATE orders SET status = 'HAZIRLANIYOR' WHERE order_no = $1 AND status NOT IN ('TESLIM_EDILDI')",
           [iyzicoResult.basketId]
         );
+
+        // Telegram Bildirimi Gönder
+        sendTelegramOrderNotification(iyzicoResult.basketId).catch(err => console.error('Telegram notification error:', err));
       }
 
       // Müşteriyi Başarılı Ödeme Sayfasına Yönlendir
